@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".LoginActivity"
+    android:background="#0A7CDC">
+
+
+
+    <ImageView
+        android:id="@+id/iv_full_logo"
+        android:layout_width="447dp"
+        android:layout_height="227dp"
+        android:layout_marginTop="50dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="Study Motify Full Logo"
+        android:minWidth="160dp"
+        android:minHeight="70dp"
+        android:paddingHorizontal="40dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/studymotify"
+        app:layout_constraintBottom_toTopOf="@id/white_card_container"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/white_card_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@drawable/rounded_top_corners_white"
+            android:padding="32dp"
+            app:layout_constraintTop_toBottomOf="@id/iv_full_logo"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintVertical_bias="1.0"
+            android:layout_marginTop="30dp">
+
+            <TextView
+                android:id="@+id/tv_login_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Login"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                android:layout_marginBottom="32dp"/>
+
+            <EditText
+                android:id="@+id/et_email"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:hint="Email"
+                android:inputType="textEmailAddress"
+                android:paddingHorizontal="16dp"
+                android:background="@drawable/rounded_edittext_background"
+                app:layout_constraintTop_toBottomOf="@id/tv_login_title"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="32dp"
+                android:textSize="16sp"/>
+
+            <EditText
+                android:id="@+id/et_password"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:hint="Password"
+                android:inputType="textPassword"
+                android:paddingHorizontal="16dp"
+                android:background="@drawable/rounded_edittext_background"
+                app:layout_constraintTop_toBottomOf="@id/et_email"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="16dp"
+                android:textSize="16sp"/>
+
+            <Button
+                android:id="@+id/btn_continue"
+                android:layout_width="0dp"
+                android:layout_height="55dp"
+                android:text="Continue"
+                android:backgroundTint="#2196F3"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textAllCaps="false"
+                android:textStyle="bold"
+                app:layout_constraintTop_toBottomOf="@id/et_password"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="32dp"
+                android:padding="8dp"/>
+
+            <TextView
+                android:id="@+id/tv_forgot_password"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Forget password?"
+                android:textColor="#2196F3"
+                app:layout_constraintTop_toBottomOf="@id/btn_continue"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="24dp"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
