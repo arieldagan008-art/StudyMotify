@@ -106,7 +106,7 @@ public class CommunityActivity extends AppCompatActivity {
         currentCommunity = communityName;
         String key = communityKey(communityName);
 
-        tvLinksLabel.setText("Links in "" + communityName + """);
+        tvLinksLabel.setText("Links in \"" + communityName + "\"");
         tvEmpty.setVisibility(View.GONE);
         linkList.clear();
         adapter.notifyDataSetChanged();
@@ -134,7 +134,7 @@ public class CommunityActivity extends AppCompatActivity {
                         tvEmpty.setVisibility(linkList.isEmpty() ? View.VISIBLE : View.GONE);
                         tvLinksLabel.setText(linkList.size() + " link"
                                 + (linkList.size() == 1 ? "" : "s")
-                                + " in "" + communityName + """);
+                                + " in \"" + communityName + "\"");
                     }
 
                     @Override
@@ -193,7 +193,7 @@ public class CommunityActivity extends AppCompatActivity {
             btnPost.setEnabled(true);
             if (task.isSuccessful()) {
                 Toast.makeText(this,
-                        "Posted to "" + community + ""!", Toast.LENGTH_SHORT).show();
+                        "Posted to \"" + community + "\"!", Toast.LENGTH_SHORT).show();
                 etResourceName.setText("");
                 etLinkUrl.setText("");
                 // Reload the browse list for this community
