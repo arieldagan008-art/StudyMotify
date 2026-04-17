@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/chatToolbar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="#2196F3"
+        android:titleTextColor="@android:color/white"
+        android:subtitleTextColor="#CCDDFF"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="@android:color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Messages list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_messages"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/chatToolbar"
+        app:layout_constraintBottom_toTopOf="@id/message_input_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Empty state -->
+    <TextView
+        android:id="@+id/tv_no_messages"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No messages yet. Say hello!"
+        android:textSize="15sp"
+        android:textColor="#AAAAAA"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/chatToolbar"
+        app:layout_constraintBottom_toTopOf="@id/message_input_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Message input bar -->
+    <LinearLayout
+        android:id="@+id/message_input_bar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@android:color/white"
+        android:padding="8dp"
+        android:gravity="center_vertical"
+        android:elevation="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <EditText
+            android:id="@+id/et_message"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Type a message…"
+            android:background="@drawable/rounded_edittext_background"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="10dp"
+            android:textSize="15sp"
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLines="4"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btn_send"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="➤"
+            android:textSize="18sp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:backgroundTint="#2196F3"
+            android:textColor="@android:color/white"
+            android:padding="0dp" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

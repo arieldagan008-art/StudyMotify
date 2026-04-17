@@ -7,7 +7,6 @@
     android:layout_height="match_parent"
     android:background="#2196F3">
 
-    <!-- Header -->
     <RelativeLayout
         android:id="@+id/community_header"
         android:layout_width="0dp"
@@ -41,7 +40,6 @@
 
     </RelativeLayout>
 
-    <!-- White round container -->
     <androidx.cardview.widget.CardView
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -64,182 +62,100 @@
                 android:orientation="vertical"
                 android:paddingHorizontal="20dp"
                 android:paddingTop="28dp"
-                android:paddingBottom="80dp">
+                android:paddingBottom="60dp">
 
-                <!-- ── BROWSE SECTION ─────────────────────────────── -->
+                <!-- ── CREATE / JOIN BUTTONS ─────────────────────── -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp">
 
+                    <Button
+                        android:id="@+id/btn_create_community"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="+ Create"
+                        android:textAllCaps="false"
+                        android:backgroundTint="#2196F3"
+                        android:textColor="@android:color/white"
+                        android:layout_marginEnd="8dp" />
+
+                    <Button
+                        android:id="@+id/btn_join_community"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="# Join"
+                        android:textAllCaps="false"
+                        android:backgroundTint="#E3F2FD"
+                        android:textColor="#1565C0"
+                        android:layout_marginStart="8dp" />
+
+                </LinearLayout>
+
+                <!-- ── MY COMMUNITIES ────────────────────────────── -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Browse Resources"
+                    android:text="My Communities"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="#1A1A1A"
                     android:layout_marginBottom="10dp" />
 
-                <!-- Community filter row -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="12dp">
-
-                    <AutoCompleteTextView
-                        android:id="@+id/actv_browse_community"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:hint="Community (e.g. Physics)"
-                        android:inputType="textCapWords"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="10dp"
-                        android:textSize="14sp"
-                        android:background="@drawable/rounded_edittext_background"
-                        android:layout_marginEnd="8dp"
-                        android:completionThreshold="1" />
-
-                    <Button
-                        android:id="@+id/btn_browse"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Load"
-                        android:textAllCaps="false"
-                        android:backgroundTint="#2196F3"
-                        android:textColor="@android:color/white"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="10dp" />
-
-                </LinearLayout>
-
-                <!-- Links count label -->
-                <TextView
-                    android:id="@+id/tv_links_label"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Shared links will appear here"
-                    android:textSize="13sp"
-                    android:textColor="#888888"
-                    android:layout_marginBottom="8dp" />
-
-                <!-- Links RecyclerView -->
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rv_shared_links"
+                    android:id="@+id/rv_my_communities"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />
 
-                <!-- Empty state -->
                 <TextView
-                    android:id="@+id/tv_empty_links"
+                    android:id="@+id/tv_empty_mine"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="No resources shared in this community yet.\nBe the first to share one below!"
-                    android:textSize="14sp"
+                    android:text="You haven't joined any communities yet.\nCreate one or join with a code!"
+                    android:textSize="13sp"
                     android:textColor="#AAAAAA"
                     android:gravity="center"
                     android:lineSpacingMultiplier="1.4"
-                    android:paddingVertical="20dp"
+                    android:paddingVertical="16dp"
                     android:visibility="gone" />
 
-                <!-- ── DIVIDER ─────────────────────────────────────── -->
-
+                <!-- ── DIVIDER ────────────────────────────────────── -->
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="#E0E0E0"
-                    android:layout_marginVertical="24dp" />
+                    android:layout_marginVertical="20dp" />
 
-                <!-- ── SHARE SECTION ──────────────────────────────── -->
-
+                <!-- ── DISCOVER ──────────────────────────────────── -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Share a Resource"
+                    android:text="Discover Communities"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="#1A1A1A"
-                    android:layout_marginBottom="14dp" />
+                    android:layout_marginBottom="10dp" />
 
-                <!-- Community name -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_discover"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
                 <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Community"
-                    android:textSize="12sp"
-                    android:textColor="#555555"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
-
-                <AutoCompleteTextView
-                    android:id="@+id/actv_post_community"
+                    android:id="@+id/tv_empty_discover"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="e.g. Physics, Biology, Math…"
-                    android:inputType="textCapWords"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="10dp"
-                    android:textSize="15sp"
-                    android:background="@drawable/rounded_edittext_background"
-                    android:layout_marginBottom="16dp"
-                    android:completionThreshold="1" />
-
-                <!-- Resource name -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Resource Name"
-                    android:textSize="12sp"
-                    android:textColor="#555555"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
-
-                <EditText
-                    android:id="@+id/et_resource_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="e.g. Physics Exam 2025 Summary"
-                    android:inputType="textCapSentences"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="10dp"
-                    android:textSize="15sp"
-                    android:background="@drawable/rounded_edittext_background"
-                    android:layout_marginBottom="16dp" />
-
-                <!-- Link URL -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Link URL"
-                    android:textSize="12sp"
-                    android:textColor="#555555"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
-
-                <EditText
-                    android:id="@+id/et_link_url"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="https://drive.google.com/…"
-                    android:inputType="textUri"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="10dp"
-                    android:textSize="15sp"
-                    android:background="@drawable/rounded_edittext_background"
-                    android:layout_marginBottom="24dp" />
-
-                <Button
-                    android:id="@+id/btn_post_link"
-                    android:layout_width="match_parent"
-                    android:layout_height="55dp"
-                    android:text="Post to Community"
-                    android:textAllCaps="false"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:backgroundTint="#2196F3"
-                    android:textColor="@android:color/white" />
+                    android:text="No public communities found yet."
+                    android:textSize="13sp"
+                    android:textColor="#AAAAAA"
+                    android:gravity="center"
+                    android:paddingVertical="16dp"
+                    android:visibility="gone" />
 
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
