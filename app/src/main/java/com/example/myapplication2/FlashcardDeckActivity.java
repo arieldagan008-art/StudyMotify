@@ -127,7 +127,7 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                 }
             }
         }
-        deckAdapter.notifyDataSetChanged();
+        deckAdapter.refreshData();
     }
 
     // ─── Add Card dialog ──────────────────────────────────────────────────────
@@ -215,11 +215,10 @@ public class FlashcardDeckActivity extends AppCompatActivity {
         }
 
         @SuppressLint("NotifyDataSetChanged")
-        @Override
-        public void notifyDataSetChanged() {
+        public void refreshData() {
             subjects.clear();
             subjects.addAll(subjectMap.keySet());
-            super.notifyDataSetChanged();
+            notifyDataSetChanged();
         }
 
         @NonNull
