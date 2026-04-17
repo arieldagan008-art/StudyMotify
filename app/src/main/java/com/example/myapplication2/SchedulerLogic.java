@@ -1,5 +1,6 @@
 package com.example.myapplication2;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -7,6 +8,81 @@ public class SchedulerLogic {
 
     /** If total daily units across all goals exceeds this, show the overload warning. */
     public static final int DAILY_OVERLOAD_THRESHOLD = 20;
+
+    /** Maximum units per day considered sustainable for a single goal. */
+    public static final int SUSTAINABLE_DAILY_CAP = 5;
+
+    // ─── Re-plan suggestion ───────────────────────────────────────────────────
+
+    public static class ReplanSuggestion {
+        public final Goal   goal;
+        public final int    sustainableDailyTarget;
+        public final long   newDeadlineMs;
+        public final int    daysExtended;
+        public final boolean alreadyFeasible;
+
+        ReplanSuggestion(Goal goal, int sustainableDailyTarget,
+                         long newDeadlineMs, int daysExtended, boolean alreadyFeasible) {
+            this.goal                 = goal;
+            this.sustainableDailyTarget = sustainableDailyTarget;
+            this.newDeadlineMs        = newDeadlineMs;
+            this.daysExtended         = daysExtended;
+            this.alreadyFeasible      = alreadyFeasible;
+        }
+    }
+
+    /**
+     * Calculates a sustainable re-plan for a single goal.
+     * If the current daily target already fits within SUSTAINABLE_DAILY_CAP,
+     * the suggestion is marked alreadyFeasible and the deadline is unchanged.
+     * Otherwise, a new deadline is proposed so that the user only needs to do
+     * SUSTAINABLE_DAILY_CAP units per day (adjusted for difficulty multiplier).
+     */
+    public static ReplanSuggestion rebalanceLoad(Goal goal) {
+        if (goal.totalUnits <= 0 || goal.deadlineDate <= 0) return null;
+
+        int remaining = goal.totalUnits - goal.completedUnits;
+        if (remaining <= 0) return null;
+
+        double multiplier       = getDifficultyMultiplier(goal.getDifficulty());
+        double effectiveRemain  = remaining * multiplier;
+
+        int currentDaily = calculateDailyTarget(goal);
+        if (currentDaily <= SUSTAINABLE_DAILY_CAP) {
+            return new ReplanSuggestion(goal, currentDaily, goal.deadlineDate, 0, true);
+        }
+
+        // How many days are needed at the sustainable cap?
+        int daysNeeded = (int) Math.ceil(effectiveRemain / SUSTAINABLE_DAILY_CAP);
+
+        // Build new deadline = midnight today + daysNeeded
+        Calendar today = Calendar.getInstance();
+        today.set(Calendar.HOUR_OF_DAY, 0);
+        today.set(Calendar.MINUTE, 0);
+        today.set(Calendar.SECOND, 0);
+        today.set(Calendar.MILLISECOND, 0);
+        long newDeadlineMs = today.getTimeInMillis() + (long) daysNeeded * 24 * 60 * 60 * 1000L;
+
+        long currentDaysLeft = Math.max(daysUntilDeadline(goal.deadlineDate), 0);
+        int daysExtended = (int) (daysNeeded - currentDaysLeft);
+
+        return new ReplanSuggestion(goal, SUSTAINABLE_DAILY_CAP,
+                newDeadlineMs, Math.max(0, daysExtended), false);
+    }
+
+    /**
+     * Returns re-plan suggestions for every active goal whose daily target
+     * exceeds SUSTAINABLE_DAILY_CAP.
+     */
+    public static List<ReplanSuggestion> rebalanceAll(List<Goal> goals) {
+        List<ReplanSuggestion> suggestions = new ArrayList<>();
+        for (Goal g : goals) {
+            if (g.isCompleted || g.totalUnits <= 0) continue;
+            ReplanSuggestion s = rebalanceLoad(g);
+            if (s != null && !s.alreadyFeasible) suggestions.add(s);
+        }
+        return suggestions;
+    }
 
     // ─── Difficulty multipliers ───────────────────────────────────────────────
 

@@ -7,13 +7,17 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -23,6 +27,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -31,13 +36,17 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class HomeActivity extends AppCompatActivity {
 
     RecyclerView rvGoals, rvChecklist;
-    Button btnAddGoal, btnSignOut;
+    Button btnAddGoal, btnReplan;
+    LinearLayout layoutOverloadBanner;
     TextView tvSystemStatus;
 
     GoalsAdapter adapter;
@@ -63,19 +72,15 @@ public class HomeActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
 
-        rvGoals        = findViewById(R.id.rvGoals);
-        rvChecklist    = findViewById(R.id.rvChecklist);
-        btnAddGoal     = findViewById(R.id.btnAddGoal);
-        btnSignOut     = findViewById(R.id.btnSignOut);
-        tvSystemStatus = findViewById(R.id.tv_system_status);
+        MaterialToolbar toolbar = findViewById(R.id.homeToolbar);
+        setSupportActionBar(toolbar);
 
-        btnSignOut.setOnClickListener(v -> {
-            FirebaseHelper.getInstance().signOut();
-            Intent i = new Intent(this, LoginActivity.class);
-            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(i);
-            finish();
-        });
+        rvGoals              = findViewById(R.id.rvGoals);
+        rvChecklist          = findViewById(R.id.rvChecklist);
+        btnAddGoal           = findViewById(R.id.btnAddGoal);
+        btnReplan            = findViewById(R.id.btn_replan);
+        layoutOverloadBanner = findViewById(R.id.layout_overload_banner);
+        tvSystemStatus       = findViewById(R.id.tv_system_status);
 
         rvGoals.setLayoutManager(new LinearLayoutManager(this));
         goalList = new ArrayList<>();
@@ -87,8 +92,47 @@ public class HomeActivity extends AppCompatActivity {
         btnAddGoal.setOnClickListener(v -> startActivity(
                 new Intent(HomeActivity.this, AddGoalActivity.class)));
 
+        btnReplan.setOnClickListener(v -> {
+            List<SchedulerLogic.ReplanSuggestion> suggestions =
+                    SchedulerLogic.rebalanceAll(goalList);
+            if (suggestions.isEmpty()) {
+                Toast.makeText(this, "No overloaded goals to re-plan.", Toast.LENGTH_SHORT).show();
+            } else {
+                showReplanDialog(suggestions);
+            }
+        });
+
         attachSwipeToDelete();
     }
+
+    // ─── Toolbar menu ─────────────────────────────────────────────────────────
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.home_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.menu_analytics) {
+            startActivity(new Intent(this, FocusAnalyticsActivity.class));
+            return true;
+        }
+        if (id == R.id.menu_sign_out) {
+            FirebaseHelper.getInstance().signOut();
+            Intent i = new Intent(this, LoginActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(i);
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    // ─── Firebase lifecycle ───────────────────────────────────────────────────
 
     @Override
     protected void onStart() {
@@ -116,7 +160,7 @@ public class HomeActivity extends AppCompatActivity {
     // ─── Firebase listener ────────────────────────────────────────────────────
 
     private void attachGoalsListener() {
-        if (goalsListener != null) return; // already attached
+        if (goalsListener != null) return;
         goalsListener = new ValueEventListener() {
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -161,10 +205,79 @@ public class HomeActivity extends AppCompatActivity {
             tvSystemStatus.setText(
                     "⚠️ Warning: Extreme workload detected! ("
                     + totalDailyUnits + " units due today across all goals)");
-            tvSystemStatus.setVisibility(View.VISIBLE);
+            layoutOverloadBanner.setVisibility(View.VISIBLE);
         } else {
-            tvSystemStatus.setVisibility(View.GONE);
+            layoutOverloadBanner.setVisibility(View.GONE);
         }
+    }
+
+    // ─── Smart Re-plan dialog ─────────────────────────────────────────────────
+
+    private void showReplanDialog(List<SchedulerLogic.ReplanSuggestion> suggestions) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("To keep your workload sustainable (max ")
+          .append(SchedulerLogic.SUSTAINABLE_DAILY_CAP)
+          .append(" units/day), here are the proposed changes:\n\n");
+
+        for (SchedulerLogic.ReplanSuggestion s : suggestions) {
+            String newDateStr = sdf.format(new Date(s.newDeadlineMs));
+            sb.append("• ")
+              .append(s.goal.getGoalName())
+              .append(": spread ")
+              .append(s.goal.totalUnits - s.goal.completedUnits)
+              .append(" remaining ")
+              .append(s.goal.getUnitLabel())
+              .append(" over the next ")
+              .append((int) Math.ceil((double)(s.goal.totalUnits - s.goal.completedUnits)
+                      * SchedulerLogic.getDifficultyMultiplier(s.goal.getDifficulty())
+                      / SchedulerLogic.SUSTAINABLE_DAILY_CAP))
+              .append(" days");
+            if (s.daysExtended > 0) {
+                sb.append(" (deadline extended by ")
+                  .append(s.daysExtended)
+                  .append(s.daysExtended == 1 ? " day" : " days")
+                  .append(" → ")
+                  .append(newDateStr)
+                  .append(")");
+            }
+            sb.append("\n");
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Proposed Re-plan")
+                .setMessage(sb.toString().trim())
+                .setPositiveButton("Accept", (dialog, which) -> applyReplan(suggestions))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void applyReplan(List<SchedulerLogic.ReplanSuggestion> suggestions) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        DatabaseReference userRef = FirebaseHelper.getInstance().getCurrentUserRef();
+
+        for (SchedulerLogic.ReplanSuggestion s : suggestions) {
+            if (s.goal.getId() == null) continue;
+
+            String newDateStr = sdf.format(new Date(s.newDeadlineMs));
+
+            // Update local model immediately
+            s.goal.deadlineDate = s.newDeadlineMs;
+            s.goal.dueDate      = newDateStr;
+
+            // Persist to Firebase
+            userRef.child("goals").child(s.goal.getId())
+                    .child("deadlineDate").setValue(s.newDeadlineMs);
+            userRef.child("goals").child(s.goal.getId())
+                    .child("dueDate").setValue(newDateStr);
+        }
+
+        Toast.makeText(this, "Re-plan applied! Deadlines updated.", Toast.LENGTH_SHORT).show();
+
+        // Refresh adapter so cards show updated daily targets
+        adapter.notifyDataSetChanged();
+        updateSystemStatus();
     }
 
     // ─── Swipe to delete ─────────────────────────────────────────────────────
@@ -179,7 +292,7 @@ public class HomeActivity extends AppCompatActivity {
             public boolean onMove(@NonNull RecyclerView rv,
                                   @NonNull RecyclerView.ViewHolder vh,
                                   @NonNull RecyclerView.ViewHolder target) {
-                return false; // drag-and-drop not used
+                return false;
             }
 
             @Override
@@ -187,24 +300,18 @@ public class HomeActivity extends AppCompatActivity {
                 int position = viewHolder.getAdapterPosition();
                 Goal deletedGoal = goalList.get(position);
 
-                // 1. Remove from local list and notify adapter immediately
                 goalList.remove(position);
                 adapter.notifyItemRemoved(position);
 
-                // 2. Detach Firebase listener so the deletion event doesn't
-                //    re-populate the list while the Snackbar is visible
                 detachGoalsListener();
 
-                // 3. Delete from Firebase
                 if (deletedGoal.getId() != null) {
                     mDatabase.child(deletedGoal.getId()).removeValue();
                 }
 
-                // 4. Show Undo Snackbar for 3 seconds
                 Snackbar.make(rvGoals, "Goal deleted", Snackbar.LENGTH_LONG)
                         .setDuration(3000)
                         .setAction("Undo", v -> {
-                            // Restore to Firebase — the listener reattach will repopulate the list
                             if (deletedGoal.getId() != null) {
                                 mDatabase.child(deletedGoal.getId()).setValue(deletedGoal);
                             }
@@ -213,7 +320,6 @@ public class HomeActivity extends AppCompatActivity {
                         .addCallback(new Snackbar.Callback() {
                             @Override
                             public void onDismissed(Snackbar sb, int event) {
-                                // Reattach listener after Snackbar closes (any reason other than Undo)
                                 if (event != DISMISS_EVENT_ACTION) {
                                     attachGoalsListener();
                                 }
@@ -224,7 +330,6 @@ public class HomeActivity extends AppCompatActivity {
                         .show();
             }
 
-            // Draw red background while the card is being swiped
             @Override
             public void onChildDraw(@NonNull Canvas c,
                                     @NonNull RecyclerView recyclerView,
@@ -233,10 +338,10 @@ public class HomeActivity extends AppCompatActivity {
                                     int actionState, boolean isCurrentlyActive) {
                 super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
                 View item = viewHolder.itemView;
-                if (dX > 0) { // swiping right
+                if (dX > 0) {
                     swipeBackground.setBounds(item.getLeft(), item.getTop(),
                             item.getLeft() + (int) dX, item.getBottom());
-                } else if (dX < 0) { // swiping left
+                } else if (dX < 0) {
                     swipeBackground.setBounds(item.getRight() + (int) dX, item.getTop(),
                             item.getRight(), item.getBottom());
                 } else {

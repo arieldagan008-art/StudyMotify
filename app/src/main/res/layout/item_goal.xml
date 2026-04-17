@@ -131,13 +131,16 @@
                     <Button
                         android:id="@+id/btn_log_progress"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="wrap_content"
                         android:text="+ Log Progress"
                         android:textSize="11sp"
                         android:textAllCaps="false"
                         android:backgroundTint="#E3F2FD"
                         android:textColor="#1565C0"
-                        android:paddingHorizontal="10dp" />
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="4dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
 
                 </LinearLayout>
 
