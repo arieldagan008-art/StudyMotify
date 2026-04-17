@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="3dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <!-- Left accent strip -->
+        <View
+            android:layout_width="5dp"
+            android:layout_height="match_parent"
+            android:background="#2196F3" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <!-- Resource name -->
+            <TextView
+                android:id="@+id/tv_link_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Resource Name"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="#1A1A1A" />
+
+            <!-- URL -->
+            <TextView
+                android:id="@+id/tv_link_url"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="https://drive.google.com/..."
+                android:textSize="12sp"
+                android:textColor="#1565C0"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <!-- Author + time -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tv_link_author"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Shared by user@example.com"
+                    android:textSize="11sp"
+                    android:textColor="#888888" />
+
+                <TextView
+                    android:id="@+id/tv_link_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2h ago"
+                    android:textSize="11sp"
+                    android:textColor="#AAAAAA" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Open arrow -->
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="12dp"
+            android:src="@drawable/ic_arrow_back"
+            android:rotation="180"
+            android:contentDescription="Open link"
+            app:tint="#BBBBBB" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

@@ -120,6 +120,10 @@ public class HomeActivity extends AppCompatActivity {
             startActivity(new Intent(this, FocusAnalyticsActivity.class));
             return true;
         }
+        if (id == R.id.menu_community) {
+            startActivity(new Intent(this, CommunityActivity.class));
+            return true;
+        }
         if (id == R.id.menu_sign_out) {
             FirebaseHelper.getInstance().signOut();
             Intent i = new Intent(this, LoginActivity.class);
