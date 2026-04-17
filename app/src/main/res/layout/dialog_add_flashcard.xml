@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="4dp">
+
+    <!-- Subject -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Subject"
+        android:textSize="12sp"
+        android:textColor="#555555"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/et_flashcard_subject"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="e.g. Biology, Math, My Cards"
+        android:inputType="textCapSentences"
+        android:background="@drawable/rounded_edittext_background"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
+        android:textSize="14sp"
+        android:layout_marginBottom="14dp" />
+
+    <!-- Question -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Question"
+        android:textSize="12sp"
+        android:textColor="#555555"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/et_flashcard_question"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="e.g. What is the powerhouse of the cell?"
+        android:inputType="textMultiLine|textCapSentences"
+        android:maxLines="3"
+        android:background="@drawable/rounded_edittext_background"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
+        android:textSize="14sp"
+        android:layout_marginBottom="14dp" />
+
+    <!-- Answer -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Answer"
+        android:textSize="12sp"
+        android:textColor="#555555"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/et_flashcard_answer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="e.g. The mitochondria"
+        android:inputType="textMultiLine|textCapSentences"
+        android:maxLines="3"
+        android:background="@drawable/rounded_edittext_background"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
+        android:textSize="14sp" />
+
+</LinearLayout>

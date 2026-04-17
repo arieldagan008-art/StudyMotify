@@ -29,6 +29,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ChatActivity extends AppCompatActivity {
@@ -122,7 +123,7 @@ public class ChatActivity extends AppCompatActivity {
         btnAddResource = findViewById(R.id.btn_add_resource);
 
         rvResources.setLayoutManager(new LinearLayoutManager(this));
-        resourcesAdapter = new ResourcesAdapter(this, resourceList);
+        resourcesAdapter = new ResourcesAdapter(this, resourceList, communityId, currentUid);
         rvResources.setAdapter(resourcesAdapter);
 
         btnAddResource.setOnClickListener(v -> showAddResourceDialog());
@@ -266,6 +267,9 @@ public class ChatActivity extends AppCompatActivity {
                         resourceList.add(res);
                     }
                 }
+                // Sort by likesCount descending (most liked first)
+                Collections.sort(resourceList,
+                        (a, b) -> Long.compare(b.getLikesCount(), a.getLikesCount()));
                 resourcesAdapter.notifyDataSetChanged();
                 if (rvResources.getVisibility() == View.VISIBLE) {
                     tvNoResources.setVisibility(resourceList.isEmpty() ? View.VISIBLE : View.GONE);

@@ -124,6 +124,10 @@ public class HomeActivity extends AppCompatActivity {
             startActivity(new Intent(this, CommunityActivity.class));
             return true;
         }
+        if (id == R.id.menu_flashcards) {
+            startActivity(new Intent(this, FlashcardDeckActivity.class));
+            return true;
+        }
         if (id == R.id.menu_sign_out) {
             FirebaseHelper.getInstance().signOut();
             Intent i = new Intent(this, LoginActivity.class);

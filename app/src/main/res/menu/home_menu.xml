@@ -17,6 +17,11 @@
         app:iconTint="@android:color/white" />
 
     <item
+        android:id="@+id/menu_flashcards"
+        android:title="Flashcards"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_sign_out"
         android:title="Sign Out"
         app:showAsAction="never" />

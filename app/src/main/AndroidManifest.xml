@@ -40,6 +40,12 @@
             android:name=".ChatActivity"
             android:exported="false" />
         <activity
+            android:name=".FlashcardDeckActivity"
+            android:exported="false" />
+        <activity
+            android:name=".StudyActivity"
+            android:exported="false" />
+        <activity
             android:name=".HomeActivity"
             android:exported="false" />
         <activity
