@@ -99,6 +99,8 @@ public class StudyActivity extends AppCompatActivity {
             currentUid = FirebaseHelper.getInstance().getAuth().getUid();
         }
 
+        findViewById(R.id.fab_add_study_card).setOnClickListener(v -> showAddCardDialog());
+
         loadCards();
     }
 

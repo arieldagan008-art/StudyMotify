@@ -82,6 +82,9 @@ public class HomeActivity extends AppCompatActivity {
         layoutOverloadBanner = findViewById(R.id.layout_overload_banner);
         tvSystemStatus       = findViewById(R.id.tv_system_status);
 
+        findViewById(R.id.cardFlashcards).setOnClickListener(v ->
+                startActivity(new Intent(this, FlashcardDeckActivity.class)));
+
         rvGoals.setLayoutManager(new LinearLayoutManager(this));
         goalList = new ArrayList<>();
         adapter  = new GoalsAdapter(this, goalList);

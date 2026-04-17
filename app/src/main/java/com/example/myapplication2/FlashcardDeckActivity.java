@@ -9,7 +9,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,30 +26,24 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class FlashcardDeckActivity extends AppCompatActivity {
 
-    // Preset subject tiles with emoji icons
     private static final String[][] PRESET_SUBJECTS = {
         {"📖", "Biology"},
-        {"🏛", "History"},
-        {"⚗", "Chemistry"},
-        {"🧠", "Psychology"},
-        {"📐", "Math"},
-        {"🗂", "My Cards"},
+        {"🏛",  "History"},
+        {"⚗",  "Chemistry"},
+        {"🧠",  "Psychology"},
+        {"📐",  "Math"},
+        {"🗂",  "My Cards"},
     };
 
-    private RecyclerView     rvSubjects;
-    private DeckAdapter      deckAdapter;
-
-    // subject → card count (LinkedHashMap preserves insertion order)
+    private DeckAdapter             deckAdapter;
     private final Map<String, Integer> subjectMap = new LinkedHashMap<>();
-
-    private String currentUid;
+    private String                  currentUid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,13 +56,21 @@ public class FlashcardDeckActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        rvSubjects = findViewById(R.id.rv_subjects);
+        RecyclerView rvSubjects = findViewById(R.id.rv_subjects);
         rvSubjects.setLayoutManager(new GridLayoutManager(this, 2));
-        deckAdapter = new DeckAdapter(this, subjectMap, subject -> {
-            Intent intent = new Intent(this, StudyActivity.class);
-            intent.putExtra(StudyActivity.EXTRA_SUBJECT, subject);
-            startActivity(intent);
-        });
+
+        deckAdapter = new DeckAdapter(
+                this,
+                subjectMap,
+                subject -> {
+                    // Open study mode
+                    Intent intent = new Intent(this, StudyActivity.class);
+                    intent.putExtra(StudyActivity.EXTRA_SUBJECT, subject);
+                    startActivity(intent);
+                },
+                this::confirmDeleteDeck,
+                this::showShareDeckDialog
+        );
         rvSubjects.setAdapter(deckAdapter);
 
         FloatingActionButton fab = findViewById(R.id.fab_add_card);
@@ -83,24 +84,23 @@ public class FlashcardDeckActivity extends AppCompatActivity {
         }
     }
 
-    // ─── Load card counts from Firebase ──────────────────────────────────────
+    // ─── Firebase: load deck counts ───────────────────────────────────────────
 
     private void loadDecks() {
         FirebaseHelper.getInstance()
                 .getCurrentUserRef()
                 .child("decks")
                 .addValueEventListener(new ValueEventListener() {
-                    @SuppressLint("NotifyDataSetChanged")
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        Map<String, Integer> firebaseCounts = new LinkedHashMap<>();
+                        Map<String, Integer> counts = new LinkedHashMap<>();
                         for (DataSnapshot subjectSnap : snapshot.getChildren()) {
-                            String subject = subjectSnap.getKey();
-                            if (subject != null) {
-                                firebaseCounts.put(subject, (int) subjectSnap.getChildrenCount());
+                            String key = subjectSnap.getKey();
+                            if (key != null) {
+                                counts.put(key, (int) subjectSnap.getChildrenCount());
                             }
                         }
-                        loadPresets(firebaseCounts);
+                        loadPresets(counts);
                     }
 
                     @Override
@@ -110,7 +110,6 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                 });
     }
 
-    @SuppressLint("NotifyDataSetChanged")
     private void loadPresets(Map<String, Integer> firebaseCounts) {
         subjectMap.clear();
         for (String[] preset : PRESET_SUBJECTS) {
@@ -119,7 +118,6 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                     ? firebaseCounts.get(subject) : 0;
             subjectMap.put(subject, count);
         }
-        // Append any custom subjects not in presets
         if (firebaseCounts != null) {
             for (Map.Entry<String, Integer> entry : firebaseCounts.entrySet()) {
                 if (!subjectMap.containsKey(entry.getKey())) {
@@ -130,7 +128,132 @@ public class FlashcardDeckActivity extends AppCompatActivity {
         deckAdapter.refreshData();
     }
 
-    // ─── Add Card dialog ──────────────────────────────────────────────────────
+    // ─── Delete deck ──────────────────────────────────────────────────────────
+
+    private void confirmDeleteDeck(String subject) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Deck")
+                .setMessage("Are you sure you want to delete the \"" + subject
+                        + "\" deck? All cards will be permanently removed.")
+                .setPositiveButton("Delete", (dialog, which) -> deleteDeck(subject))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteDeck(String subject) {
+        if (currentUid == null) return;
+        FirebaseHelper.getInstance()
+                .getCurrentUserRef()
+                .child("decks")
+                .child(subject)
+                .removeValue()
+                .addOnSuccessListener(v ->
+                        Toast.makeText(this, "\"" + subject + "\" deck deleted.",
+                                Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Delete failed. Try again.",
+                                Toast.LENGTH_SHORT).show());
+        // loadDecks() ValueEventListener will automatically refresh the grid
+    }
+
+    // ─── Share deck to community ──────────────────────────────────────────────
+
+    private void showShareDeckDialog(String subject) {
+        if (currentUid == null) {
+            Toast.makeText(this, "Please sign in to share.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Load the user's communities, then show the picker
+        FirebaseHelper.getInstance()
+                .getCurrentUserRef()
+                .child("communities")
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        List<String> communityIds   = new ArrayList<>();
+                        List<String> communityNames = new ArrayList<>();
+
+                        for (DataSnapshot child : snapshot.getChildren()) {
+                            String id   = child.getKey();
+                            String name = child.getValue(String.class);
+                            if (id != null) {
+                                communityIds.add(id);
+                                communityNames.add(name != null ? name : id);
+                            }
+                        }
+
+                        if (communityIds.isEmpty()) {
+                            Toast.makeText(FlashcardDeckActivity.this,
+                                    "You haven't joined any communities yet.",
+                                    Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        String[] namesArray = communityNames.toArray(new String[0]);
+                        new AlertDialog.Builder(FlashcardDeckActivity.this)
+                                .setTitle("Share \"" + subject + "\" deck to...")
+                                .setItems(namesArray, (dialog, which) -> {
+                                    String communityId   = communityIds.get(which);
+                                    String communityName = communityNames.get(which);
+                                    copyDeckToCommunity(subject, communityId, communityName);
+                                })
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        Toast.makeText(FlashcardDeckActivity.this,
+                                "Could not load communities.", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void copyDeckToCommunity(String subject, String communityId, String communityName) {
+        DatabaseReference sourceRef = FirebaseHelper.getInstance()
+                .getCurrentUserRef()
+                .child("decks")
+                .child(subject);
+
+        sourceRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!snapshot.exists()) {
+                    Toast.makeText(FlashcardDeckActivity.this,
+                            "No cards to share.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                DatabaseReference destRef = FirebaseHelper.getInstance()
+                        .getDatabase()
+                        .getReference("communities")
+                        .child(communityId)
+                        .child("sharedDecks")
+                        .child(subject);
+
+                for (DataSnapshot cardSnap : snapshot.getChildren()) {
+                    Flashcard card = cardSnap.getValue(Flashcard.class);
+                    if (card != null) {
+                        String pushKey = destRef.push().getKey();
+                        if (pushKey != null) destRef.child(pushKey).setValue(card);
+                    }
+                }
+
+                Toast.makeText(FlashcardDeckActivity.this,
+                        "\"" + subject + "\" deck shared to " + communityName + "!",
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(FlashcardDeckActivity.this,
+                        "Share failed: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    // ─── Add Card dialog (FAB) ────────────────────────────────────────────────
 
     private void showAddCardDialog() {
         if (!FirebaseHelper.getInstance().isLoggedIn()) {
@@ -139,7 +262,6 @@ public class FlashcardDeckActivity extends AppCompatActivity {
         }
 
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_flashcard, null);
-
         EditText etSubject  = dialogView.findViewById(R.id.et_flashcard_subject);
         EditText etQuestion = dialogView.findViewById(R.id.et_flashcard_question);
         EditText etAnswer   = dialogView.findViewById(R.id.et_flashcard_answer);
@@ -151,7 +273,6 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                     String subject  = etSubject.getText().toString().trim();
                     String question = etQuestion.getText().toString().trim();
                     String answer   = etAnswer.getText().toString().trim();
-
                     if (TextUtils.isEmpty(subject)) {
                         Toast.makeText(this, "Subject is required.", Toast.LENGTH_SHORT).show();
                         return;
@@ -167,35 +288,36 @@ public class FlashcardDeckActivity extends AppCompatActivity {
     }
 
     private void pushCard(String subject, String question, String answer) {
-        DatabaseReference deckRef = FirebaseHelper.getInstance()
+        DatabaseReference cardRef = FirebaseHelper.getInstance()
                 .getCurrentUserRef()
                 .child("decks")
-                .child(subject);
+                .child(subject)
+                .push();
 
-        DatabaseReference cardRef = deckRef.push();
         Flashcard card = new Flashcard(cardRef.getKey(), question, answer, subject, currentUid);
-
         cardRef.setValue(card)
                 .addOnSuccessListener(v ->
-                        Toast.makeText(this, "Card added to " + subject + "!", Toast.LENGTH_SHORT).show())
+                        Toast.makeText(this, "Card added to " + subject + "!",
+                                Toast.LENGTH_SHORT).show())
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Failed to add card.", Toast.LENGTH_SHORT).show());
     }
 
-    // ─── Deck grid adapter ────────────────────────────────────────────────────
+    // ─── Inner adapter ────────────────────────────────────────────────────────
 
-    interface OnSubjectClickListener {
-        void onSubjectClick(String subject);
-    }
+    interface OnSubjectClickListener  { void onSubjectClick(String subject); }
+    interface OnSubjectDeleteListener { void onSubjectDelete(String subject); }
+    interface OnSubjectShareListener  { void onSubjectShare(String subject); }
 
     static class DeckAdapter extends RecyclerView.Adapter<DeckAdapter.DeckVH> {
 
-        private final Context               context;
-        private final Map<String, Integer>  subjectMap;
-        private final OnSubjectClickListener listener;
-        private final List<String>          subjects;
+        private final Context                context;
+        private final Map<String, Integer>   subjectMap;
+        private final OnSubjectClickListener  clickListener;
+        private final OnSubjectDeleteListener deleteListener;
+        private final OnSubjectShareListener  shareListener;
+        private final List<String>            subjects = new ArrayList<>();
 
-        // Icon mapping — emoji keyed by subject name
         private static final Map<String, String> ICONS = new LinkedHashMap<>();
         static {
             ICONS.put("Biology",    "📖");
@@ -206,12 +328,16 @@ public class FlashcardDeckActivity extends AppCompatActivity {
             ICONS.put("My Cards",   "🗂");
         }
 
-        DeckAdapter(Context context, Map<String, Integer> subjectMap,
-                    OnSubjectClickListener listener) {
-            this.context    = context;
-            this.subjectMap = subjectMap;
-            this.listener   = listener;
-            this.subjects   = new ArrayList<>(subjectMap.keySet());
+        DeckAdapter(Context context,
+                    Map<String, Integer>   subjectMap,
+                    OnSubjectClickListener  clickListener,
+                    OnSubjectDeleteListener deleteListener,
+                    OnSubjectShareListener  shareListener) {
+            this.context        = context;
+            this.subjectMap     = subjectMap;
+            this.clickListener  = clickListener;
+            this.deleteListener = deleteListener;
+            this.shareListener  = shareListener;
         }
 
         @SuppressLint("NotifyDataSetChanged")
@@ -239,7 +365,9 @@ public class FlashcardDeckActivity extends AppCompatActivity {
             holder.tvName.setText(subject);
             holder.tvCount.setText(count == 1 ? "1 card" : count + " cards");
 
-            holder.itemView.setOnClickListener(v -> listener.onSubjectClick(subject));
+            holder.itemView.setOnClickListener(v -> clickListener.onSubjectClick(subject));
+            holder.btnDelete.setOnClickListener(v -> deleteListener.onSubjectDelete(subject));
+            holder.btnShare.setOnClickListener(v -> shareListener.onSubjectShare(subject));
         }
 
         @Override
@@ -247,11 +375,15 @@ public class FlashcardDeckActivity extends AppCompatActivity {
 
         static class DeckVH extends RecyclerView.ViewHolder {
             TextView tvIcon, tvName, tvCount;
+            android.widget.Button btnDelete, btnShare;
+
             DeckVH(@NonNull View itemView) {
                 super(itemView);
-                tvIcon  = itemView.findViewById(R.id.tv_subject_icon);
-                tvName  = itemView.findViewById(R.id.tv_subject_name);
-                tvCount = itemView.findViewById(R.id.tv_card_count);
+                tvIcon    = itemView.findViewById(R.id.tv_subject_icon);
+                tvName    = itemView.findViewById(R.id.tv_subject_name);
+                tvCount   = itemView.findViewById(R.id.tv_card_count);
+                btnDelete = itemView.findViewById(R.id.btn_delete_deck);
+                btnShare  = itemView.findViewById(R.id.btn_share_deck);
             }
         }
     }

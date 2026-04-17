@@ -195,6 +195,20 @@
 
     </LinearLayout>
 
+    <!-- FAB: Add Card (always visible) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_add_study_card"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:contentDescription="Add Flashcard"
+        app:srcCompat="@android:drawable/ic_input_add"
+        app:backgroundTint="#2196F3"
+        app:tint="@android:color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/nav_row" />
+
     <!-- Empty state -->
     <TextView
         android:id="@+id/tv_study_empty"
