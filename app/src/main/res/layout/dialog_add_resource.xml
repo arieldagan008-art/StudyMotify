@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="4dp">
+
+    <!-- Type selector -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Resource Type"
+        android:textSize="12sp"
+        android:textColor="#555555"
+        android:textStyle="bold"
+        android:layout_marginBottom="6dp" />
+
+    <RadioGroup
+        android:id="@+id/rg_resource_type"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <RadioButton
+            android:id="@+id/rb_exam"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="📝 Exam"
+            android:checked="true"
+            android:textSize="14sp" />
+
+        <RadioButton
+            android:id="@+id/rb_summary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="📄 Summary"
+            android:textSize="14sp" />
+
+    </RadioGroup>
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Title"
+        android:textSize="12sp"
+        android:textColor="#555555"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/et_resource_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="e.g. Physics Exam 2025"
+        android:inputType="textCapSentences"
+        android:background="@drawable/rounded_edittext_background"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
+        android:textSize="14sp"
+        android:layout_marginBottom="14dp" />
+
+    <!-- URL -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Link URL"
+        android:textSize="12sp"
+        android:textColor="#555555"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/et_resource_url"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="https://drive.google.com/…"
+        android:inputType="textUri"
+        android:background="@drawable/rounded_edittext_background"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
+        android:textSize="14sp" />
+
+</LinearLayout>

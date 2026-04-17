@@ -4,15 +4,19 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -37,17 +41,34 @@ public class ChatActivity extends AppCompatActivity {
     private String currentUid;
     private String currentDisplayName;
 
+    // ── Chat views ────────────────────────────────────────────────────────────
     private RecyclerView    rvMessages;
     private EditText        etMessage;
     private Button          btnSend;
     private TextView        tvNoMessages;
+    private LinearLayout    messageInputBar;
 
     private final List<Message> messageList = new ArrayList<>();
-    private MessagesAdapter adapter;
+    private MessagesAdapter     messagesAdapter;
     private LinearLayoutManager layoutManager;
 
     private DatabaseReference messagesRef;
     private ChildEventListener messageListener;
+
+    // ── Resources views ───────────────────────────────────────────────────────
+    private RecyclerView     rvResources;
+    private TextView         tvNoResources;
+    private Button           btnAddResource;
+
+    private final List<Resource> resourceList = new ArrayList<>();
+    private ResourcesAdapter     resourcesAdapter;
+
+    private DatabaseReference    resourcesRef;
+    private ValueEventListener   resourcesListener;
+
+    // ── Tab buttons ───────────────────────────────────────────────────────────
+    private Button btnTabChat;
+    private Button btnTabResources;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,9 +84,7 @@ public class ChatActivity extends AppCompatActivity {
         if (FirebaseHelper.getInstance().isLoggedIn()) {
             currentUid = FirebaseHelper.getInstance().getAuth().getUid();
             String email = FirebaseHelper.getInstance().getCurrentUser().getEmail();
-            currentDisplayName = email != null
-                    ? email.split("@")[0]   // use local part of email as display name
-                    : "Anonymous";
+            currentDisplayName = email != null ? email.split("@")[0] : "Anonymous";
         } else {
             currentUid         = "anon_" + System.currentTimeMillis();
             currentDisplayName = "Anonymous";
@@ -78,29 +97,95 @@ public class ChatActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        rvMessages   = findViewById(R.id.rv_messages);
-        etMessage    = findViewById(R.id.et_message);
-        btnSend      = findViewById(R.id.btn_send);
-        tvNoMessages = findViewById(R.id.tv_no_messages);
+        // Tab buttons
+        btnTabChat      = findViewById(R.id.btn_tab_chat);
+        btnTabResources = findViewById(R.id.btn_tab_resources);
+
+        // Chat section
+        rvMessages      = findViewById(R.id.rv_messages);
+        etMessage       = findViewById(R.id.et_message);
+        btnSend         = findViewById(R.id.btn_send);
+        tvNoMessages    = findViewById(R.id.tv_no_messages);
+        messageInputBar = findViewById(R.id.message_input_bar);
 
         layoutManager = new LinearLayoutManager(this);
-        layoutManager.setStackFromEnd(true);   // newest messages at the bottom
+        layoutManager.setStackFromEnd(true);
         rvMessages.setLayoutManager(layoutManager);
-        adapter = new MessagesAdapter(messageList, currentUid);
-        rvMessages.setAdapter(adapter);
+        messagesAdapter = new MessagesAdapter(messageList, currentUid);
+        rvMessages.setAdapter(messagesAdapter);
 
         btnSend.setOnClickListener(v -> sendMessage());
 
-        messagesRef = FirebaseHelper.getInstance()
-                .getDatabase()
-                .getReference("communities")
-                .child(communityId)
-                .child("messages");
+        // Resources section
+        rvResources    = findViewById(R.id.rv_resources);
+        tvNoResources  = findViewById(R.id.tv_no_resources);
+        btnAddResource = findViewById(R.id.btn_add_resource);
 
+        rvResources.setLayoutManager(new LinearLayoutManager(this));
+        resourcesAdapter = new ResourcesAdapter(this, resourceList);
+        rvResources.setAdapter(resourcesAdapter);
+
+        btnAddResource.setOnClickListener(v -> showAddResourceDialog());
+
+        // Firebase refs
+        DatabaseReference communityRef = FirebaseHelper.getInstance()
+                .getDatabase().getReference("communities").child(communityId);
+        messagesRef  = communityRef.child("messages");
+        resourcesRef = communityRef.child("resources");
+
+        // Tab click listeners
+        btnTabChat.setOnClickListener(v -> showChatTab());
+        btnTabResources.setOnClickListener(v -> showResourcesTab());
+
+        // Start on Chat tab
+        showChatTab();
         attachMessageListener();
+        attachResourcesListener();
     }
 
-    // ─── Toolbar menu (Share) ─────────────────────────────────────────────────
+    // ─── Tab switching ────────────────────────────────────────────────────────
+
+    private void showChatTab() {
+        // Chat section visible
+        rvMessages.setVisibility(View.VISIBLE);
+        tvNoMessages.setVisibility(messageList.isEmpty() ? View.VISIBLE : View.GONE);
+        messageInputBar.setVisibility(View.VISIBLE);
+
+        // Resources section hidden
+        rvResources.setVisibility(View.GONE);
+        tvNoResources.setVisibility(View.GONE);
+        btnAddResource.setVisibility(View.GONE);
+
+        // Button active states
+        btnTabChat.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(0xFF2196F3));
+        btnTabChat.setTextColor(0xFFFFFFFF);
+        btnTabResources.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(0xFFE3F2FD));
+        btnTabResources.setTextColor(0xFF2196F3);
+    }
+
+    private void showResourcesTab() {
+        // Resources section visible
+        rvResources.setVisibility(View.VISIBLE);
+        tvNoResources.setVisibility(resourceList.isEmpty() ? View.VISIBLE : View.GONE);
+        btnAddResource.setVisibility(View.VISIBLE);
+
+        // Chat section hidden
+        rvMessages.setVisibility(View.GONE);
+        tvNoMessages.setVisibility(View.GONE);
+        messageInputBar.setVisibility(View.GONE);
+
+        // Button active states
+        btnTabResources.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(0xFF2196F3));
+        btnTabResources.setTextColor(0xFFFFFFFF);
+        btnTabChat.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(0xFFE3F2FD));
+        btnTabChat.setTextColor(0xFF2196F3);
+    }
+
+    // ─── Toolbar menu ─────────────────────────────────────────────────────────
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -130,17 +215,17 @@ public class ChatActivity extends AppCompatActivity {
 
     private void attachMessageListener() {
         messageListener = new ChildEventListener() {
-            @SuppressLint("NotifyDataSetChanged")
             @Override
-            public void onChildAdded(@NonNull DataSnapshot snapshot,
-                                     String previousChildName) {
+            public void onChildAdded(@NonNull DataSnapshot snapshot, String previousChildName) {
                 Message msg = snapshot.getValue(Message.class);
                 if (msg != null) {
                     if (msg.id == null) msg.id = snapshot.getKey();
                     messageList.add(msg);
-                    adapter.notifyItemInserted(messageList.size() - 1);
+                    messagesAdapter.notifyItemInserted(messageList.size() - 1);
                     rvMessages.scrollToPosition(messageList.size() - 1);
-                    tvNoMessages.setVisibility(View.GONE);
+                    if (rvMessages.getVisibility() == View.VISIBLE) {
+                        tvNoMessages.setVisibility(View.GONE);
+                    }
                 }
             }
 
@@ -154,10 +239,11 @@ public class ChatActivity extends AppCompatActivity {
             }
         };
 
-        // Show "No messages" text until first message arrives
         messagesRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override public void onDataChange(@NonNull DataSnapshot s) {
-                if (!s.exists()) tvNoMessages.setVisibility(View.VISIBLE);
+                if (!s.exists() && rvMessages.getVisibility() == View.VISIBLE) {
+                    tvNoMessages.setVisibility(View.VISIBLE);
+                }
             }
             @Override public void onCancelled(@NonNull DatabaseError e) {}
         });
@@ -165,12 +251,85 @@ public class ChatActivity extends AppCompatActivity {
         messagesRef.addChildEventListener(messageListener);
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (messagesRef != null && messageListener != null) {
-            messagesRef.removeEventListener(messageListener);
-        }
+    // ─── Resources listener ───────────────────────────────────────────────────
+
+    @SuppressLint("NotifyDataSetChanged")
+    private void attachResourcesListener() {
+        resourcesListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                resourceList.clear();
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    Resource res = child.getValue(Resource.class);
+                    if (res != null) {
+                        if (res.id == null) res.id = child.getKey();
+                        resourceList.add(res);
+                    }
+                }
+                resourcesAdapter.notifyDataSetChanged();
+                if (rvResources.getVisibility() == View.VISIBLE) {
+                    tvNoResources.setVisibility(resourceList.isEmpty() ? View.VISIBLE : View.GONE);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(ChatActivity.this,
+                        "Resources error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        };
+        resourcesRef.addValueEventListener(resourcesListener);
+    }
+
+    // ─── Add Resource dialog ──────────────────────────────────────────────────
+
+    private void showAddResourceDialog() {
+        View dialogView = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_add_resource, null);
+
+        RadioGroup rgType      = dialogView.findViewById(R.id.rg_resource_type);
+        EditText   etTitle     = dialogView.findViewById(R.id.et_resource_title);
+        EditText   etUrl       = dialogView.findViewById(R.id.et_resource_url);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Add Resource")
+                .setView(dialogView)
+                .setPositiveButton("Add", (dialog, which) -> {
+                    String title = etTitle.getText().toString().trim();
+                    String url   = etUrl.getText().toString().trim();
+                    String type  = (rgType.getCheckedRadioButtonId() == R.id.rb_exam)
+                            ? "Exam" : "Summary";
+
+                    if (TextUtils.isEmpty(title)) {
+                        Toast.makeText(this, "Please enter a title.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (TextUtils.isEmpty(url)) {
+                        Toast.makeText(this, "Please enter a URL.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    pushResource(title, type, url);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void pushResource(String title, String type, String url) {
+        DatabaseReference newRef = resourcesRef.push();
+        Resource resource = new Resource(
+                newRef.getKey(),
+                title,
+                type,
+                url,
+                currentDisplayName,
+                currentUid
+        );
+        newRef.setValue(resource)
+                .addOnSuccessListener(aVoid ->
+                        Toast.makeText(this, "Resource added!", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Failed to add resource.", Toast.LENGTH_SHORT).show());
     }
 
     // ─── Send a message ───────────────────────────────────────────────────────
@@ -185,5 +344,18 @@ public class ChatActivity extends AppCompatActivity {
         etMessage.setText("");
         msgRef.setValue(msg).addOnFailureListener(e ->
                 Toast.makeText(this, "Send failed. Try again.", Toast.LENGTH_SHORT).show());
+    }
+
+    // ─── Cleanup ──────────────────────────────────────────────────────────────
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (messagesRef != null && messageListener != null) {
+            messagesRef.removeEventListener(messageListener);
+        }
+        if (resourcesRef != null && resourcesListener != null) {
+            resourcesRef.removeEventListener(resourcesListener);
+        }
     }
 }
