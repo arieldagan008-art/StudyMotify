@@ -28,6 +28,9 @@
             android:name=".FocusAnalyticsActivity"
             android:exported="false" />
         <activity
+            android:name=".AddFlashcardActivity"
+            android:exported="false" />
+        <activity
             android:name=".HomeActivity"
             android:exported="false" />
         <activity

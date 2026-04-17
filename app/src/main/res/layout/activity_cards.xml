@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#2196F3"
@@ -18,15 +19,26 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
+        <ImageView
+            android:id="@+id/iv_back_arrow"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@android:color/white"
+            android:contentDescription="Back"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="16dp" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cards"
-            android:textSize="32sp"
+            android:text="Flashcards"
+            android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="@android:color/white"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"/>
+            android:layout_toEndOf="@id/iv_back_arrow"
+            android:layout_centerVertical="true" />
 
     </RelativeLayout>
 
@@ -52,91 +64,238 @@
                 android:orientation="vertical"
                 android:paddingTop="32dp"
                 android:paddingHorizontal="24dp"
-                android:paddingBottom="80dp">
+                android:paddingBottom="100dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Choose a Subject"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="#1A1A1A"
+                    android:layout_marginBottom="16dp" />
 
                 <GridLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:columnCount="2"
-                    android:rowCount="3"
                     android:useDefaultMargins="true"
                     android:padding="4dp">
 
                     <androidx.cardview.widget.CardView
+                        android:id="@+id/cv_subject_history"
                         android:layout_width="0dp"
                         android:layout_height="120dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="8dp"
-                        app:cardCornerRadius="10dp"
+                        android:foreground="?android:attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardCornerRadius="16dp"
                         app:cardElevation="4dp"
-                        android:backgroundTint="@android:color/white">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="History"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:textColor="@android:color/black"
-                            android:layout_gravity="center"/>
+                        android:backgroundTint="#FFF3E0">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="📜"
+                                android:textSize="28sp" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="History"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="#E65100"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
                     </androidx.cardview.widget.CardView>
 
                     <androidx.cardview.widget.CardView
+                        android:id="@+id/cv_subject_biology"
                         android:layout_width="0dp"
                         android:layout_height="120dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="8dp"
-                        app:cardCornerRadius="10dp"
+                        android:foreground="?android:attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardCornerRadius="16dp"
                         app:cardElevation="4dp"
-                        android:backgroundTint="@android:color/white">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Biology"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:textColor="@android:color/black"
-                            android:layout_gravity="center"/>
+                        android:backgroundTint="#E8F5E9">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🧬"
+                                android:textSize="28sp" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Biology"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="#2E7D32"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
                     </androidx.cardview.widget.CardView>
 
                     <androidx.cardview.widget.CardView
+                        android:id="@+id/cv_subject_chemistry"
                         android:layout_width="0dp"
                         android:layout_height="120dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="8dp"
-                        app:cardCornerRadius="10dp"
+                        android:foreground="?android:attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardCornerRadius="16dp"
                         app:cardElevation="4dp"
-                        android:backgroundTint="@android:color/white">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Chemistry"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:textColor="@android:color/black"
-                            android:layout_gravity="center"/>
+                        android:backgroundTint="#E3F2FD">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="⚗️"
+                                android:textSize="28sp" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Chemistry"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="#1565C0"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
                     </androidx.cardview.widget.CardView>
 
                     <androidx.cardview.widget.CardView
+                        android:id="@+id/cv_subject_psychology"
                         android:layout_width="0dp"
                         android:layout_height="120dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="8dp"
-                        app:cardCornerRadius="10dp"
+                        android:foreground="?android:attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardCornerRadius="16dp"
                         app:cardElevation="4dp"
-                        android:backgroundTint="@android:color/white">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Psychology"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:textColor="@android:color/black"
-                            android:layout_gravity="center"/>
+                        android:backgroundTint="#F3E5F5">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🧠"
+                                android:textSize="28sp" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Psychology"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="#6A1B9A"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/cv_subject_math"
+                        android:layout_width="0dp"
+                        android:layout_height="120dp"
+                        android:layout_columnWeight="1"
+                        android:layout_margin="8dp"
+                        android:foreground="?android:attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="4dp"
+                        android:backgroundTint="#FCE4EC">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="➕"
+                                android:textSize="28sp" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Math"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="#AD1457"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/cv_subject_custom"
+                        android:layout_width="0dp"
+                        android:layout_height="120dp"
+                        android:layout_columnWeight="1"
+                        android:layout_margin="8dp"
+                        android:foreground="?android:attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="4dp"
+                        android:backgroundTint="#ECEFF1">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="✏️"
+                                android:textSize="28sp" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="My Cards"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="#455A64"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
                     </androidx.cardview.widget.CardView>
 
                 </GridLayout>
 
+                <!-- Add new card button -->
+                <Button
+                    android:id="@+id/btn_add_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="+ Create New Flashcard"
+                    android:textAllCaps="false"
+                    android:textSize="16sp"
+                    android:backgroundTint="#2196F3"
+                    android:textColor="@android:color/white" />
+
             </LinearLayout>
         </ScrollView>
     </androidx.cardview.widget.CardView>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

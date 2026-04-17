@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#2196F3"
@@ -27,7 +28,7 @@
             android:contentDescription="Back"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="16dp"/>
+            android:layout_marginEnd="16dp" />
 
         <TextView
             android:id="@+id/tv_card_subject"
@@ -38,7 +39,17 @@
             android:textStyle="bold"
             android:textColor="@android:color/white"
             android:layout_toEndOf="@id/iv_back_arrow"
-            android:layout_centerVertical="true"/>
+            android:layout_centerVertical="true" />
+
+        <TextView
+            android:id="@+id/tv_card_counter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1 / 5"
+            android:textSize="14sp"
+            android:textColor="@android:color/white"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true" />
 
     </RelativeLayout>
 
@@ -61,35 +72,41 @@
             android:padding="24dp"
             android:gravity="top">
 
+            <!-- Question -->
             <TextView
                 android:id="@+id/tv_card_question"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="What is the process by which plants make their food?"
-                android:textSize="24sp"
+                android:textSize="22sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/black"
-                android:layout_marginBottom="64dp"/>
+                android:layout_marginBottom="24dp" />
 
+            <!-- Answer container — hidden until "Show Answer" is tapped -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/cv_answer_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginVertical="32dp"
+                android:layout_marginBottom="16dp"
                 app:cardCornerRadius="10dp"
                 app:cardElevation="4dp"
-                android:visibility="visible"> <TextView
-                android:id="@+id/tv_card_answer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Photosynthesis"
-                android:textSize="20sp"
-                android:textColor="@android:color/black"
-                android:padding="24dp"
-                android:gravity="center"
-                android:textStyle="bold"/>
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tv_card_answer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Photosynthesis"
+                    android:textSize="20sp"
+                    android:textColor="@android:color/black"
+                    android:padding="24dp"
+                    android:gravity="center"
+                    android:textStyle="bold" />
+
             </androidx.cardview.widget.CardView>
 
+            <!-- Show / Hide Answer button -->
             <Button
                 android:id="@+id/btn_show_answer"
                 android:layout_width="match_parent"
@@ -99,9 +116,65 @@
                 android:textColor="@android:color/white"
                 android:textSize="18sp"
                 android:textAllCaps="false"
-                android:textStyle="bold"
-                android:layout_marginTop="32dp"/>
+                android:textStyle="bold" />
+
+            <!-- Previous / Next navigation -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="12dp">
+
+                <Button
+                    android:id="@+id/btn_prev_card"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="◀ Previous"
+                    android:textAllCaps="false"
+                    android:backgroundTint="#E3F2FD"
+                    android:textColor="#1565C0"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/btn_next_card"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Next ▶"
+                    android:textAllCaps="false"
+                    android:backgroundTint="#E3F2FD"
+                    android:textColor="#1565C0"
+                    android:layout_marginStart="8dp" />
+
+            </LinearLayout>
+
+            <!-- Share to Community -->
+            <Button
+                android:id="@+id/btn_share_community"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Share to Community"
+                android:textAllCaps="false"
+                android:backgroundTint="#4CAF50"
+                android:textColor="@android:color/white"
+                android:textSize="15sp" />
+
+            <!-- Empty state -->
+            <TextView
+                android:id="@+id/tv_empty_cards"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:text="No flashcards yet for this subject.\nTap 'Create New Flashcard' to add some!"
+                android:textSize="16sp"
+                android:textColor="#888888"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.4"
+                android:visibility="gone" />
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
