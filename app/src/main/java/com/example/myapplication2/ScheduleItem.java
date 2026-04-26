@@ -12,6 +12,7 @@ public class ScheduleItem {
     public int    durationMinutes;   // length of the session
     public int    unitsPlanned;      // units the user is expected to complete
     public double minutesPerUnit;    // velocity used to estimate duration
+    public boolean isFixedEvent;     // true = placed from Goal.isFixedTime; no units/velocity
 
     public ScheduleItem() {}
 

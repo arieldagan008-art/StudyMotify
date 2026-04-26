@@ -18,6 +18,9 @@ public class Goal implements java.io.Serializable {
     public int  difficulty;              // 1 = Easy, 2 = Medium, 3 = Hard
     public long createdAtTimestamp;     // epoch ms when the goal was first created
     public int  estimatedMinutesPerUnit; // teacher/user estimate; 0 = unset
+    public boolean isFixedTime;          // true = fixed scheduled event (e.g. school class)
+    public String  startTime;            // "HH:MM" – only used when isFixedTime = true
+    public String  endTime;              // "HH:MM" – only used when isFixedTime = true
 
     // 2. בנאי ריק (Empty Constructor)
     // חובה עבור Firebase כדי שיוכל להמיר את הנתונים מהענן לאובייקט Java

@@ -22,7 +22,7 @@
             android:id="@+id/tv_screen_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add Goal"
+            android:text="Add Goal / Event"
             android:textSize="32sp"
             android:textStyle="bold"
             android:textColor="@android:color/white"
@@ -64,10 +64,11 @@
                 android:orientation="vertical"
                 android:padding="24dp">
 
+                <!-- Goal / Event name -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Goal name"
+                    android:text="Goal / Event name"
                     android:textSize="16sp"
                     android:textColor="@android:color/black"
                     android:textStyle="bold"
@@ -82,6 +83,7 @@
                     android:background="@drawable/rounded_edittext_background"
                     android:layout_marginBottom="24dp"/>
 
+                <!-- Due date -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -119,6 +121,7 @@
                         android:contentDescription="Date Picker"/>
                 </RelativeLayout>
 
+                <!-- Details -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -138,6 +141,7 @@
                     android:background="@drawable/rounded_edittext_background"
                     android:layout_marginBottom="24dp"/>
 
+                <!-- Category Spinner -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -146,16 +150,26 @@
                     android:textColor="@android:color/black"
                     android:textStyle="bold"
                     android:layout_marginBottom="8dp"/>
-                <EditText
-                    android:id="@+id/et_category"
+                <Spinner
+                    android:id="@+id/spinner_category"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:hint="e.g. Study, Work, Personal"
+                    android:background="@drawable/rounded_edittext_background"
+                    android:paddingHorizontal="16dp"
+                    android:layout_marginBottom="8dp"/>
+                <!-- Shown only when "Other" is selected -->
+                <EditText
+                    android:id="@+id/et_category_other"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:hint="Enter your category"
                     android:inputType="textCapSentences"
                     android:paddingHorizontal="16dp"
                     android:background="@drawable/rounded_edittext_background"
-                    android:layout_marginBottom="24dp"/>
+                    android:layout_marginBottom="24dp"
+                    android:visibility="gone"/>
 
+                <!-- Difficulty -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -203,44 +217,164 @@
 
                 </RadioGroup>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Progress Tracking (optional)"
-                    android:textSize="16sp"
-                    android:textColor="@android:color/black"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp"/>
-
-                <LinearLayout
+                <!-- Fixed Event Toggle -->
+                <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="24dp">
+                    android:layout_marginBottom="16dp">
 
-                    <EditText
-                        android:id="@+id/et_total_units"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_weight="1"
-                        android:hint="Total (e.g. 50)"
-                        android:inputType="number"
-                        android:paddingHorizontal="16dp"
-                        android:background="@drawable/rounded_edittext_background"
-                        android:layout_marginEnd="8dp"/>
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_centerVertical="true">
 
-                    <EditText
-                        android:id="@+id/et_unit_label"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_weight="1"
-                        android:hint="Unit (e.g. pages)"
-                        android:inputType="textCapSentences"
-                        android:paddingHorizontal="16dp"
-                        android:background="@drawable/rounded_edittext_background"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Fixed Event"
+                            android:textSize="16sp"
+                            android:textColor="@android:color/black"
+                            android:textStyle="bold"/>
 
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="e.g. School, Meeting, Gym class"
+                            android:textSize="12sp"
+                            android:textColor="#888888"/>
+                    </LinearLayout>
+
+                    <Switch
+                        android:id="@+id/switch_fixed_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:minWidth="48dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:thumbTint="#2196F3"
+                        android:trackTint="#CCCCCC"/>
+                </RelativeLayout>
+
+                <!-- Fixed time pickers — hidden until switch is ON -->
+                <LinearLayout
+                    android:id="@+id/layout_fixed_times"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="24dp"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="From"
+                            android:textSize="16sp"
+                            android:textColor="@android:color/black"
+                            android:textStyle="bold"/>
+
+                        <TextView
+                            android:id="@+id/tv_start_time"
+                            android:layout_width="wrap_content"
+                            android:layout_height="48dp"
+                            android:text="08:00"
+                            android:textSize="16sp"
+                            android:textColor="#2196F3"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:background="@drawable/rounded_edittext_background"
+                            android:clickable="true"
+                            android:focusable="true"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="To"
+                            android:textSize="16sp"
+                            android:textColor="@android:color/black"
+                            android:textStyle="bold"/>
+
+                        <TextView
+                            android:id="@+id/tv_end_time"
+                            android:layout_width="wrap_content"
+                            android:layout_height="48dp"
+                            android:text="09:00"
+                            android:textSize="16sp"
+                            android:textColor="#2196F3"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:background="@drawable/rounded_edittext_background"
+                            android:clickable="true"
+                            android:focusable="true"/>
+                    </LinearLayout>
                 </LinearLayout>
 
+                <!-- Progress Tracking — hidden when Fixed Event is ON -->
+                <LinearLayout
+                    android:id="@+id/layout_progress_tracking"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Progress Tracking (optional)"
+                        android:textSize="16sp"
+                        android:textColor="@android:color/black"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="24dp">
+
+                        <EditText
+                            android:id="@+id/et_total_units"
+                            android:layout_width="0dp"
+                            android:layout_height="50dp"
+                            android:layout_weight="1"
+                            android:hint="Total (e.g. 50)"
+                            android:inputType="number"
+                            android:paddingHorizontal="16dp"
+                            android:background="@drawable/rounded_edittext_background"
+                            android:layout_marginEnd="8dp"/>
+
+                        <EditText
+                            android:id="@+id/et_unit_label"
+                            android:layout_width="0dp"
+                            android:layout_height="50dp"
+                            android:layout_weight="1"
+                            android:hint="Unit (e.g. pages)"
+                            android:inputType="textCapSentences"
+                            android:paddingHorizontal="16dp"
+                            android:background="@drawable/rounded_edittext_background"/>
+
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Reminder -->
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -299,7 +433,7 @@
                     android:id="@+id/btn_save_goal"
                     android:layout_width="match_parent"
                     android:layout_height="55dp"
-                    android:text="Save Goal"
+                    android:text="Save"
                     android:backgroundTint="#2196F3"
                     android:textColor="@android:color/white"
                     android:textSize="18sp"
