@@ -44,7 +44,7 @@ import java.util.Locale;
 
 public class HomeActivity extends AppCompatActivity {
 
-    RecyclerView rvGoals, rvChecklist;
+    RecyclerView rvGoals;
     Button btnAddGoal, btnReplan;
     LinearLayout layoutOverloadBanner;
     TextView tvSystemStatus;
@@ -76,7 +76,6 @@ public class HomeActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         rvGoals              = findViewById(R.id.rvGoals);
-        rvChecklist          = findViewById(R.id.rvChecklist);
         btnAddGoal           = findViewById(R.id.btnAddGoal);
         btnReplan            = findViewById(R.id.btn_replan);
         layoutOverloadBanner = findViewById(R.id.layout_overload_banner);
@@ -89,8 +88,6 @@ public class HomeActivity extends AppCompatActivity {
         goalList = new ArrayList<>();
         adapter  = new GoalsAdapter(this, goalList);
         rvGoals.setAdapter(adapter);
-
-        rvChecklist.setLayoutManager(new LinearLayoutManager(this));
 
         btnAddGoal.setOnClickListener(v -> startActivity(
                 new Intent(HomeActivity.this, AddGoalActivity.class)));

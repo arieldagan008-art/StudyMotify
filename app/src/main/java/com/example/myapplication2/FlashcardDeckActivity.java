@@ -55,6 +55,7 @@ public class FlashcardDeckActivity extends AppCompatActivity {
         toolbar.setSubtitle("Tap a subject to study");
         setSupportActionBar(toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
+        if (getSupportActionBar() != null) getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         RecyclerView rvSubjects = findViewById(R.id.rv_subjects);
         rvSubjects.setLayoutManager(new GridLayoutManager(this, 2));
@@ -304,6 +305,12 @@ public class FlashcardDeckActivity extends AppCompatActivity {
     }
 
     // ─── Inner adapter ────────────────────────────────────────────────────────
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
+    }
 
     interface OnSubjectClickListener  { void onSubjectClick(String subject); }
     interface OnSubjectDeleteListener { void onSubjectDelete(String subject); }
