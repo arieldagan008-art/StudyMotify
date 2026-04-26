@@ -28,7 +28,22 @@
         android:paddingHorizontal="8dp"
         android:clipToPadding="false" />
 
-    <!-- FAB: Add Card -->
+    <!-- FAB: Generate with AI (sits above the Add Card FAB) -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_generate_ai"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="88dp"
+        android:layout_marginEnd="16dp"
+        android:text="Generate with AI"
+        android:textColor="@android:color/white"
+        app:backgroundTint="#7B1FA2"
+        app:icon="@android:drawable/ic_menu_manage"
+        app:iconTint="@android:color/white"
+        android:contentDescription="Generate flashcards with AI" />
+
+    <!-- FAB: Add Card manually -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_card"
         android:layout_width="wrap_content"

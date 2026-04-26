@@ -1,6 +1,14 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.gms.google.services)
+}
+
+// Read local.properties so we can expose the Gemini key via BuildConfig
+val localProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
 }
 
 android {
@@ -14,6 +22,16 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Gemini API key — set gemini.api.key in local.properties
+        buildConfigField(
+            "String", "GEMINI_API_KEY",
+            "\"${localProperties.getProperty("gemini.api.key", "")}\""
+        )
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -44,6 +62,9 @@ dependencies {
 
     implementation(libs.firebase.database)
     implementation(libs.firebase.auth)
+
+    // OkHttp — used for Gemini REST API calls
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

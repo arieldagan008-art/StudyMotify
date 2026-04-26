@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="4dp">
+
+    <!-- Subject / Deck -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Subject / Deck"
+        android:textSize="12sp"
+        android:textColor="#555555"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/et_ai_subject"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="e.g. Biology, Math, History"
+        android:inputType="textCapSentences"
+        android:background="@drawable/rounded_edittext_background"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
+        android:textSize="14sp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Study text area -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Paste your study text"
+        android:textSize="12sp"
+        android:textColor="#555555"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/et_ai_text"
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:hint="Paste notes, textbook excerpts, or any study material here…"
+        android:gravity="top|start"
+        android:inputType="textMultiLine|textCapSentences"
+        android:background="@drawable/rounded_edittext_background"
+        android:padding="12dp"
+        android:textSize="14sp"
+        android:layout_marginBottom="10dp" />
+
+    <!-- Info hint -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="✨ Gemini AI will create 3–5 flashcards automatically."
+        android:textSize="11sp"
+        android:textColor="#7B1FA2"
+        android:layout_marginBottom="4dp" />
+
+</LinearLayout>

@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,17 +20,31 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication2.BuildConfig;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class FlashcardDeckActivity extends AppCompatActivity {
 
@@ -41,9 +57,15 @@ public class FlashcardDeckActivity extends AppCompatActivity {
         {"🗂",  "My Cards"},
     };
 
+    private static final String GEMINI_ENDPOINT =
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=";
+
     private DeckAdapter             deckAdapter;
     private final Map<String, Integer> subjectMap = new LinkedHashMap<>();
     private String                  currentUid;
+
+    private final ExecutorService aiExecutor  = Executors.newSingleThreadExecutor();
+    private final Handler         mainHandler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,6 +98,9 @@ public class FlashcardDeckActivity extends AppCompatActivity {
 
         FloatingActionButton fab = findViewById(R.id.fab_add_card);
         fab.setOnClickListener(v -> showAddCardDialog());
+
+        ExtendedFloatingActionButton fabAi = findViewById(R.id.fab_generate_ai);
+        fabAi.setOnClickListener(v -> showGenerateWithAiDialog());
 
         if (FirebaseHelper.getInstance().isLoggedIn()) {
             currentUid = FirebaseHelper.getInstance().getAuth().getUid();
@@ -302,6 +327,181 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                                 Toast.LENGTH_SHORT).show())
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Failed to add card.", Toast.LENGTH_SHORT).show());
+    }
+
+    // ─── Generate with AI ────────────────────────────────────────────────────
+
+    private void showGenerateWithAiDialog() {
+        View dialogView = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_generate_flashcards, null);
+        EditText etSubject = dialogView.findViewById(R.id.et_ai_subject);
+        EditText etText    = dialogView.findViewById(R.id.et_ai_text);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Generate Flashcards with AI")
+                .setView(dialogView)
+                .setPositiveButton("Generate", (dialog, which) -> {
+                    String subject = etSubject.getText().toString().trim();
+                    String text    = etText.getText().toString().trim();
+
+                    if (TextUtils.isEmpty(subject)) {
+                        Toast.makeText(this, "Subject is required.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (TextUtils.isEmpty(text)) {
+                        Toast.makeText(this, "Please paste some study text.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    generateFlashcardsWithAi(subject, text);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void generateFlashcardsWithAi(String subject, String studyText) {
+        String apiKey = BuildConfig.GEMINI_API_KEY;
+        if (TextUtils.isEmpty(apiKey) || apiKey.equals("YOUR_GEMINI_API_KEY_HERE")) {
+            Toast.makeText(this,
+                    "Gemini API key not set. Add it to local.properties.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Show a loading dialog while waiting for Gemini
+        AlertDialog loadingDialog = new AlertDialog.Builder(this)
+                .setMessage("✨ Generating flashcards with AI…")
+                .setCancelable(false)
+                .create();
+        loadingDialog.show();
+
+        aiExecutor.execute(() -> {
+            try {
+                String responseText = callGeminiApi(apiKey, studyText);
+                List<Flashcard> cards = parseFlashcardsFromJson(responseText, subject);
+
+                if (cards.isEmpty()) {
+                    mainHandler.post(() -> {
+                        loadingDialog.dismiss();
+                        Toast.makeText(this,
+                                "Could not parse flashcards from AI response. Try again.",
+                                Toast.LENGTH_LONG).show();
+                    });
+                    return;
+                }
+
+                // Push all cards to Firebase (Firebase calls are thread-safe)
+                for (Flashcard card : cards) {
+                    DatabaseReference ref = FirebaseHelper.getInstance()
+                            .getCurrentUserRef()
+                            .child("decks")
+                            .child(subject)
+                            .push();
+                    card.id = ref.getKey();
+                    ref.setValue(card);
+                }
+
+                int count = cards.size();
+                mainHandler.post(() -> {
+                    loadingDialog.dismiss();
+                    Toast.makeText(this,
+                            count + " card" + (count == 1 ? "" : "s") +
+                            " added to \"" + subject + "\"!",
+                            Toast.LENGTH_LONG).show();
+                });
+
+            } catch (IOException e) {
+                mainHandler.post(() -> {
+                    loadingDialog.dismiss();
+                    Toast.makeText(this,
+                            "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            } catch (Exception e) {
+                mainHandler.post(() -> {
+                    loadingDialog.dismiss();
+                    Toast.makeText(this,
+                            "AI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    /**
+     * Calls the Gemini 1.5 Flash REST endpoint and returns the raw text response.
+     */
+    private String callGeminiApi(String apiKey, String studyText) throws IOException {
+        String prompt =
+                "Create 3-5 concise flashcards from the following study text. " +
+                "Return ONLY a raw JSON array with no markdown, no code fences, no extra text. " +
+                "Format: [{\"question\":\"...\",\"answer\":\"...\"}]\n\n" +
+                "Study text:\n" + studyText;
+
+        JSONObject part    = new JSONObject();
+        JSONObject content = new JSONObject();
+        JSONObject body    = new JSONObject();
+        try {
+            part.put("text", prompt);
+            content.put("parts", new JSONArray().put(part));
+            body.put("contents", new JSONArray().put(content));
+        } catch (Exception e) {
+            throw new IOException("Failed to build request JSON: " + e.getMessage());
+        }
+
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(GEMINI_ENDPOINT + apiKey)
+                .post(RequestBody.create(body.toString(),
+                        MediaType.parse("application/json; charset=utf-8")))
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Gemini API error " + response.code()
+                        + ": " + response.message());
+            }
+            String bodyStr = response.body() != null ? response.body().string() : "";
+            // Parse: candidates[0].content.parts[0].text
+            JSONObject json = new JSONObject(bodyStr);
+            return json.getJSONArray("candidates")
+                       .getJSONObject(0)
+                       .getJSONObject("content")
+                       .getJSONArray("parts")
+                       .getJSONObject(0)
+                       .getString("text");
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("Failed to parse Gemini response: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Parses the AI-generated text into a list of Flashcard objects.
+     * Handles optional markdown code fences (```json ... ```) in the response.
+     */
+    private List<Flashcard> parseFlashcardsFromJson(String rawText, String subject) {
+        List<Flashcard> result = new ArrayList<>();
+        try {
+            // Strip markdown code fences if Gemini wrapped the JSON
+            String cleaned = rawText.trim();
+            if (cleaned.startsWith("```")) {
+                cleaned = cleaned.replaceAll("^```[a-zA-Z]*\\n?", "")
+                                 .replaceAll("```$", "")
+                                 .trim();
+            }
+
+            JSONArray arr = new JSONArray(cleaned);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj      = arr.getJSONObject(i);
+                String     question = obj.optString("question", "").trim();
+                String     answer   = obj.optString("answer",   "").trim();
+                if (!question.isEmpty() && !answer.isEmpty()) {
+                    result.add(new Flashcard(null, question, answer, subject, currentUid));
+                }
+            }
+        } catch (Exception ignored) {
+            // Return whatever was parsed; caller handles empty list
+        }
+        return result;
     }
 
     // ─── Inner adapter ────────────────────────────────────────────────────────
