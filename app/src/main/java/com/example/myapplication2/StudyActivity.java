@@ -78,6 +78,7 @@ public class StudyActivity extends AppCompatActivity {
 
         cvFlashcard.setOnClickListener(v -> flipCard());
         btnFlip.setOnClickListener(v -> flipCard());
+        findViewById(R.id.btn_delete_card).setOnClickListener(v -> deleteCurrentCard());
 
         btnPrev.setOnClickListener(v -> {
             if (currentIndex > 0) {
@@ -174,8 +175,10 @@ public class StudyActivity extends AppCompatActivity {
             btnPrev.setVisibility(View.VISIBLE);
             btnNext.setVisibility(View.VISIBLE);
             findViewById(R.id.tv_tap_hint).setVisibility(View.VISIBLE);
-            currentIndex = 0;
-            showCard(0);
+            // Clamp index so position is preserved through Firebase re-fires after deletion
+            if (currentIndex >= cards.size()) currentIndex = cards.size() - 1;
+            if (currentIndex < 0) currentIndex = 0;
+            showCard(currentIndex);
         }
     }
 
@@ -225,6 +228,48 @@ public class StudyActivity extends AppCompatActivity {
             }
         });
         cvFlashcard.startAnimation(fadeOut);
+    }
+
+    // ─── Delete current card ──────────────────────────────────────────────────
+
+    private void deleteCurrentCard() {
+        if (cards.isEmpty()) return;
+        if (currentUid == null) {
+            Toast.makeText(this, "Sign in to delete cards.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Flashcard card   = cards.get(currentIndex);
+        String    cardId = card.getId();
+        if (cardId == null || cardId.isEmpty()) {
+            Toast.makeText(this, "Cannot delete this card.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // 1. Remove from Firebase (ValueEventListener will re-fire; index is clamped there)
+        FirebaseHelper.getInstance()
+                .getCurrentUserRef()
+                .child("decks")
+                .child(subject)
+                .child(cardId)
+                .removeValue();
+
+        // 2. Remove from local list immediately so the UI responds without waiting
+        cards.remove(currentIndex);
+
+        // 3. Confirm
+        Toast.makeText(this, "Card removed.", Toast.LENGTH_SHORT).show();
+
+        // 4. Navigate
+        if (cards.isEmpty()) {
+            // Deck is now empty — return to the deck list
+            finish();
+        } else {
+            // If we just removed the last card, step back; otherwise stay at same index
+            // (which now points to what was the next card)
+            if (currentIndex >= cards.size()) currentIndex = cards.size() - 1;
+            showCard(currentIndex);
+        }
     }
 
     // ─── Add Card dialog ──────────────────────────────────────────────────────
