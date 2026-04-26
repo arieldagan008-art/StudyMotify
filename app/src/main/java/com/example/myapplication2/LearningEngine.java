@@ -96,26 +96,26 @@ public class LearningEngine {
      */
     public static List<ScheduleItem> generateDailySchedule(List<Goal>        goals,
                                                             List<ProgressLog> logs) {
-        Map<String, Double> velocities   = computeAllVelocities(logs);
-        List<ScheduleItem>  fixedItems   = new ArrayList<>();
+        Map<String, Double> velocities    = computeAllVelocities(logs);
+        List<Goal>          fixedGoals    = new ArrayList<>();
         List<Goal>          flexibleGoals = new ArrayList<>();
 
         // ── 1. Separate fixed events and flexible goals ───────────────────────
         for (Goal goal : goals) {
             if (goal.isCompleted) continue;
             if (goal.isFixedTime) {
-                fixedItems.add(goal);
+                fixedGoals.add(goal);
             } else if (goal.totalUnits > 0) {
                 flexibleGoals.add(goal);
             }
         }
 
         // ── 2. Sort fixed events by start time ────────────────────────────────
-        fixedItems.sort((a, b) -> parseToMinutes(a.startTime) - parseToMinutes(b.startTime));
+        fixedGoals.sort((a, b) -> parseToMinutes(a.startTime) - parseToMinutes(b.startTime));
 
         // ── 3. Build ScheduleItems for fixed events ───────────────────────────
         List<ScheduleItem> schedule = new ArrayList<>();
-        for (Goal goal : fixedItems) {
+        for (Goal goal : fixedGoals) {
             int start = parseToMinutes(goal.startTime);
             int end   = parseToMinutes(goal.endTime);
             if (start < 0 || end <= start) continue;
