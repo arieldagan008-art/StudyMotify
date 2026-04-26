@@ -20,6 +20,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
+
 import com.example.myapplication2.BuildConfig;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
@@ -57,8 +59,11 @@ public class FlashcardDeckActivity extends AppCompatActivity {
         {"🗂",  "My Cards"},
     };
 
+    private static final String TAG = "FlashcardDeckActivity";
+
+    // v1 is the stable Gemini API version (v1beta returns 404 for many keys)
     private static final String GEMINI_ENDPOINT =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=";
+            "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=";
 
     private DeckAdapter             deckAdapter;
     private final Map<String, Integer> subjectMap = new LinkedHashMap<>();
@@ -454,11 +459,14 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
+            String bodyStr = response.body() != null ? response.body().string() : "";
             if (!response.isSuccessful()) {
+                // Log full error body so the exact Gemini message appears in Logcat
+                Log.e(TAG, "Gemini HTTP " + response.code() + " — body: " + bodyStr);
                 throw new IOException("Gemini API error " + response.code()
                         + ": " + response.message());
             }
-            String bodyStr = response.body() != null ? response.body().string() : "";
+            Log.d(TAG, "Gemini raw response: " + bodyStr);
             // Parse: candidates[0].content.parts[0].text
             JSONObject json = new JSONObject(bodyStr);
             return json.getJSONArray("candidates")
@@ -468,8 +476,10 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                        .getJSONObject(0)
                        .getString("text");
         } catch (IOException e) {
+            Log.e(TAG, "Gemini IO error", e);
             throw e;
         } catch (Exception e) {
+            Log.e(TAG, "Gemini parse error", e);
             throw new IOException("Failed to parse Gemini response: " + e.getMessage());
         }
     }
