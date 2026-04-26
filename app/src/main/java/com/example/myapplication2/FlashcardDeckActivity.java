@@ -364,10 +364,13 @@ public class FlashcardDeckActivity extends AppCompatActivity {
     }
 
     private void generateFlashcardsWithAi(String subject, String studyText) {
-        String apiKey = BuildConfig.GEMINI_API_KEY;
-        if (TextUtils.isEmpty(apiKey) || apiKey.equals("YOUR_GEMINI_API_KEY_HERE")) {
+        // Always trim — Gradle string interpolation can leave whitespace
+        String apiKey = BuildConfig.GEMINI_API_KEY.trim();
+        if (apiKey.isEmpty()
+                || apiKey.equals("YOUR_GEMINI_API_KEY_HERE")
+                || apiKey.startsWith("YOUR_")) {
             Toast.makeText(this,
-                    "Gemini API key not set. Add it to local.properties.",
+                    "Please add your API key in local.properties.",
                     Toast.LENGTH_LONG).show();
             return;
         }
@@ -431,44 +434,66 @@ public class FlashcardDeckActivity extends AppCompatActivity {
     }
 
     /**
-     * Calls the Gemini 1.5 Flash REST endpoint and returns the raw text response.
+     * Calls the Gemini 1.5 Flash REST API and returns the AI-generated text.
+     *
+     * <p>Endpoint (POST):
+     * https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=KEY
      */
     private String callGeminiApi(String apiKey, String studyText) throws IOException {
+        // ── Build the exact URL the spec requires ─────────────────────────────
+        // Format: BASE_URL + trimmed_api_key  (no extra spaces or chars)
+        String fullUrl = GEMINI_ENDPOINT + apiKey;
+
+        // Log URL with key partially masked so we can verify format in Logcat
+        String maskedKey = apiKey.length() > 8
+                ? apiKey.substring(0, 8) + "…" : "***";
+        Log.d(TAG, "Gemini POST → " + GEMINI_ENDPOINT + maskedKey);
+
+        // ── Build request JSON body ───────────────────────────────────────────
         String prompt =
                 "Create 3-5 concise flashcards from the following study text. " +
                 "Return ONLY a raw JSON array with no markdown, no code fences, no extra text. " +
-                "Format: [{\"question\":\"...\",\"answer\":\"...\"}]\n\n" +
-                "Study text:\n" + studyText;
+                "Format: [{\"question\":\"...\",\"answer\":\"...\"}]\n\nStudy text:\n" + studyText;
 
-        JSONObject part    = new JSONObject();
-        JSONObject content = new JSONObject();
-        JSONObject body    = new JSONObject();
+        String requestBodyJson;
         try {
+            JSONObject part    = new JSONObject();
+            JSONObject content = new JSONObject();
+            JSONObject body    = new JSONObject();
             part.put("text", prompt);
             content.put("parts", new JSONArray().put(part));
             body.put("contents", new JSONArray().put(content));
+            requestBodyJson = body.toString();
         } catch (Exception e) {
             throw new IOException("Failed to build request JSON: " + e.getMessage());
         }
+        Log.d(TAG, "Gemini request body length: " + requestBodyJson.length() + " chars");
 
-        OkHttpClient client = new OkHttpClient();
+        // ── Execute POST request ──────────────────────────────────────────────
+        OkHttpClient client  = new OkHttpClient();
+        RequestBody  reqBody = RequestBody.create(
+                requestBodyJson,
+                MediaType.parse("application/json; charset=utf-8"));
         Request request = new Request.Builder()
-                .url(GEMINI_ENDPOINT + apiKey)
-                .post(RequestBody.create(body.toString(),
-                        MediaType.parse("application/json; charset=utf-8")))
+                .url(fullUrl)
+                .post(reqBody)          // explicitly POST, not GET
+                .addHeader("Content-Type", "application/json")
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            String bodyStr = response.body() != null ? response.body().string() : "";
+            String responseBody = response.body() != null ? response.body().string() : "";
+            Log.d(TAG, "Gemini HTTP status: " + response.code());
+
             if (!response.isSuccessful()) {
-                // Log full error body so the exact Gemini message appears in Logcat
-                Log.e(TAG, "Gemini HTTP " + response.code() + " — body: " + bodyStr);
+                // Full error body shows the exact Gemini reason in Logcat
+                Log.e(TAG, "Gemini error body: " + responseBody);
                 throw new IOException("Gemini API error " + response.code()
-                        + ": " + response.message());
+                        + " — see Logcat (FlashcardDeckActivity) for details.");
             }
-            Log.d(TAG, "Gemini raw response: " + bodyStr);
+
+            Log.d(TAG, "Gemini success — parsing response");
             // Parse: candidates[0].content.parts[0].text
-            JSONObject json = new JSONObject(bodyStr);
+            JSONObject json = new JSONObject(responseBody);
             return json.getJSONArray("candidates")
                        .getJSONObject(0)
                        .getJSONObject("content")
