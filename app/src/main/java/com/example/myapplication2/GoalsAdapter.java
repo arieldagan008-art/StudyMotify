@@ -138,25 +138,50 @@ public class GoalsAdapter extends RecyclerView.Adapter<GoalsAdapter.GoalViewHold
     }
 
     private void showLogProgressDialog(Goal goal, GoalViewHolder holder) {
-        EditText input = new EditText(context);
-        input.setInputType(InputType.TYPE_CLASS_NUMBER);
-        input.setHint("Units completed (e.g. 5)");
-
         int remaining = goal.totalUnits - goal.completedUnits;
+
+        // Build a two-field dialog view
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(64, 16, 64, 8);
+
+        EditText etUnits = new EditText(context);
+        etUnits.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etUnits.setHint("Units completed (e.g. 5)");
+
+        android.widget.TextView tvMinLabel = new android.widget.TextView(context);
+        tvMinLabel.setText("How many minutes did this take?");
+        tvMinLabel.setTextSize(13f);
+        tvMinLabel.setPadding(0, 20, 0, 4);
+        tvMinLabel.setTextColor(0xFF555555);
+
+        EditText etMinutes = new EditText(context);
+        etMinutes.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etMinutes.setHint("Minutes (e.g. 45)  — optional");
+
+        layout.addView(etUnits);
+        layout.addView(tvMinLabel);
+        layout.addView(etMinutes);
 
         new AlertDialog.Builder(context)
                 .setTitle("Log Progress")
                 .setMessage("How many " + goal.getUnitLabel() + " did you complete?\n"
                         + remaining + " remaining to reach your goal.")
-                .setView(input)
+                .setView(layout)
                 .setPositiveButton("Save", (dialog, which) -> {
-                    String val = input.getText().toString().trim();
-                    if (TextUtils.isEmpty(val)) return;
+                    String valUnits = etUnits.getText().toString().trim();
+                    if (TextUtils.isEmpty(valUnits)) return;
 
-                    int added = Integer.parseInt(val);
+                    int added = Integer.parseInt(valUnits);
                     if (added <= 0) {
                         Toast.makeText(context, "Enter a number greater than 0", Toast.LENGTH_SHORT).show();
                         return;
+                    }
+
+                    String valMins = etMinutes.getText().toString().trim();
+                    int actualMinutes = 0;
+                    if (!TextUtils.isEmpty(valMins)) {
+                        try { actualMinutes = Integer.parseInt(valMins); } catch (NumberFormatException ignored) {}
                     }
 
                     int newCompleted = Math.min(goal.completedUnits + added, goal.totalUnits);
@@ -171,12 +196,13 @@ public class GoalsAdapter extends RecyclerView.Adapter<GoalsAdapter.GoalViewHold
                                 .child("completedUnits")
                                 .setValue(newCompleted);
 
-                        // Write a progress log entry for heatmap / analytics
+                        // Write a progress log entry for analytics + velocity learning
                         Map<String, Object> logEntry = new HashMap<>();
-                        logEntry.put("goalId",    goal.getId());
-                        logEntry.put("goalName",  goal.getGoalName());
-                        logEntry.put("amount",    added);
-                        logEntry.put("timestamp", System.currentTimeMillis());
+                        logEntry.put("goalId",        goal.getId());
+                        logEntry.put("goalName",       goal.getGoalName());
+                        logEntry.put("amount",         added);
+                        logEntry.put("actualMinutes",  actualMinutes);
+                        logEntry.put("timestamp",      System.currentTimeMillis());
 
                         FirebaseHelper.getInstance()
                                 .getCurrentUserRef()

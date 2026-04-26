@@ -22,6 +22,11 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_daily_schedule"
+        android:title="Daily Schedule"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_sign_out"
         android:title="Sign Out"
         app:showAsAction="never" />

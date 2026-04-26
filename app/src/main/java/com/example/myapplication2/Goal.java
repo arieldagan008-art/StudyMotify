@@ -15,8 +15,9 @@ public class Goal implements java.io.Serializable {
     public int completedUnits;
     public long deadlineDate;   // epoch ms — used for daily target math
     public String unitLabel;    // e.g. "pages", "chapters", "videos"
-    public int difficulty;           // 1 = Easy, 2 = Medium, 3 = Hard
-    public long createdAtTimestamp;  // epoch ms when the goal was first created
+    public int  difficulty;              // 1 = Easy, 2 = Medium, 3 = Hard
+    public long createdAtTimestamp;     // epoch ms when the goal was first created
+    public int  estimatedMinutesPerUnit; // teacher/user estimate; 0 = unset
 
     // 2. בנאי ריק (Empty Constructor)
     // חובה עבור Firebase כדי שיוכל להמיר את הנתונים מהענן לאובייקט Java

@@ -46,6 +46,9 @@
             android:name=".StudyActivity"
             android:exported="false" />
         <activity
+            android:name=".DailyScheduleActivity"
+            android:exported="false" />
+        <activity
             android:name=".HomeActivity"
             android:exported="false" />
         <activity
