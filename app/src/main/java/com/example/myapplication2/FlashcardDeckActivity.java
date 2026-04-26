@@ -31,22 +31,21 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
+import com.google.ai.client.generativeai.GenerativeModel;
+import com.google.ai.client.generativeai.java.GenerativeModelFutures;
+import com.google.ai.client.generativeai.type.Content;
+import com.google.ai.client.generativeai.type.GenerateContentResponse;
+import com.google.common.util.concurrent.ListenableFuture;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 public class FlashcardDeckActivity extends AppCompatActivity {
 
@@ -59,11 +58,8 @@ public class FlashcardDeckActivity extends AppCompatActivity {
         {"🗂",  "My Cards"},
     };
 
-    private static final String TAG = "FlashcardDeckActivity";
-
-    // v1 is the stable Gemini API version (v1beta returns 404 for many keys)
-    private static final String GEMINI_ENDPOINT =
-            "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=";
+    private static final String TAG            = "FlashcardDeckActivity";
+    private static final String GEMINI_MODEL   = "gemini-1.5-flash";
 
     private DeckAdapter             deckAdapter;
     private final Map<String, Integer> subjectMap = new LinkedHashMap<>();
@@ -364,7 +360,6 @@ public class FlashcardDeckActivity extends AppCompatActivity {
     }
 
     private void generateFlashcardsWithAi(String subject, String studyText) {
-        // Always trim — Gradle string interpolation can leave whitespace
         String apiKey = BuildConfig.GEMINI_API_KEY.trim();
         if (apiKey.isEmpty()
                 || apiKey.equals("YOUR_GEMINI_API_KEY_HERE")
@@ -375,137 +370,94 @@ public class FlashcardDeckActivity extends AppCompatActivity {
             return;
         }
 
-        // Show a loading dialog while waiting for Gemini
         AlertDialog loadingDialog = new AlertDialog.Builder(this)
                 .setMessage("✨ Generating flashcards with AI…")
                 .setCancelable(false)
                 .create();
         loadingDialog.show();
 
-        aiExecutor.execute(() -> {
-            try {
-                String responseText = callGeminiApi(apiKey, studyText);
-                List<Flashcard> cards = parseFlashcardsFromJson(responseText, subject);
+        Log.d(TAG, "Gemini SDK — model: " + GEMINI_MODEL
+                + ", key prefix: " + apiKey.substring(0, Math.min(8, apiKey.length())) + "…");
 
-                if (cards.isEmpty()) {
+        String prompt =
+                "Create 3-5 concise flashcards from the following study text. " +
+                "Return ONLY a raw JSON array — no markdown, no code fences, no explanation. " +
+                "Exact format: [{\"question\":\"...\",\"answer\":\"...\"}]\n\n" +
+                "Study text:\n" + studyText;
+
+        try {
+            // ── Initialize SDK model ──────────────────────────────────────────
+            GenerativeModel        gm    = new GenerativeModel(GEMINI_MODEL, apiKey);
+            GenerativeModelFutures model = GenerativeModelFutures.from(gm);
+
+            Content content = new Content.Builder()
+                    .addText(prompt)
+                    .build();
+
+            // ── Async generate (SDK handles HTTP internally) ──────────────────
+            ListenableFuture<GenerateContentResponse> future =
+                    model.generateContent(content);
+
+            future.addListener(() -> {
+                try {
+                    GenerateContentResponse response = future.get();
+                    String text = response.getText();
+                    Log.d(TAG, "Gemini raw text: " + text);
+
+                    if (text == null || text.trim().isEmpty()) {
+                        mainHandler.post(() -> {
+                            loadingDialog.dismiss();
+                            Toast.makeText(this,
+                                    "AI returned empty response. Try again.",
+                                    Toast.LENGTH_LONG).show();
+                        });
+                        return;
+                    }
+
+                    List<Flashcard> cards = parseFlashcardsFromJson(text, subject);
+                    if (cards.isEmpty()) {
+                        mainHandler.post(() -> {
+                            loadingDialog.dismiss();
+                            Toast.makeText(this,
+                                    "Could not parse AI response as flashcards. Try again.",
+                                    Toast.LENGTH_LONG).show();
+                        });
+                        return;
+                    }
+
+                    // Push cards to Firebase
+                    for (Flashcard card : cards) {
+                        DatabaseReference ref = FirebaseHelper.getInstance()
+                                .getCurrentUserRef()
+                                .child("decks").child(subject).push();
+                        card.id = ref.getKey();
+                        ref.setValue(card);
+                    }
+
+                    int count = cards.size();
                     mainHandler.post(() -> {
                         loadingDialog.dismiss();
                         Toast.makeText(this,
-                                "Could not parse flashcards from AI response. Try again.",
+                                count + " card" + (count == 1 ? "" : "s")
+                                + " added to \"" + subject + "\"!",
                                 Toast.LENGTH_LONG).show();
                     });
-                    return;
+
+                } catch (Exception e) {
+                    Log.e(TAG, "Gemini SDK error", e);
+                    mainHandler.post(() -> {
+                        loadingDialog.dismiss();
+                        Toast.makeText(this,
+                                "AI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    });
                 }
+            }, aiExecutor);
 
-                // Push all cards to Firebase (Firebase calls are thread-safe)
-                for (Flashcard card : cards) {
-                    DatabaseReference ref = FirebaseHelper.getInstance()
-                            .getCurrentUserRef()
-                            .child("decks")
-                            .child(subject)
-                            .push();
-                    card.id = ref.getKey();
-                    ref.setValue(card);
-                }
-
-                int count = cards.size();
-                mainHandler.post(() -> {
-                    loadingDialog.dismiss();
-                    Toast.makeText(this,
-                            count + " card" + (count == 1 ? "" : "s") +
-                            " added to \"" + subject + "\"!",
-                            Toast.LENGTH_LONG).show();
-                });
-
-            } catch (IOException e) {
-                mainHandler.post(() -> {
-                    loadingDialog.dismiss();
-                    Toast.makeText(this,
-                            "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            } catch (Exception e) {
-                mainHandler.post(() -> {
-                    loadingDialog.dismiss();
-                    Toast.makeText(this,
-                            "AI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            }
-        });
-    }
-
-    /**
-     * Calls the Gemini 1.5 Flash REST API and returns the AI-generated text.
-     *
-     * <p>Endpoint (POST):
-     * https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=KEY
-     */
-    private String callGeminiApi(String apiKey, String studyText) throws IOException {
-        // ── Build the exact URL the spec requires ─────────────────────────────
-        // Format: BASE_URL + trimmed_api_key  (no extra spaces or chars)
-        String fullUrl = GEMINI_ENDPOINT + apiKey;
-
-        // Log URL with key partially masked so we can verify format in Logcat
-        String maskedKey = apiKey.length() > 8
-                ? apiKey.substring(0, 8) + "…" : "***";
-        Log.d(TAG, "Gemini POST → " + GEMINI_ENDPOINT + maskedKey);
-
-        // ── Build request JSON body ───────────────────────────────────────────
-        String prompt =
-                "Create 3-5 concise flashcards from the following study text. " +
-                "Return ONLY a raw JSON array with no markdown, no code fences, no extra text. " +
-                "Format: [{\"question\":\"...\",\"answer\":\"...\"}]\n\nStudy text:\n" + studyText;
-
-        String requestBodyJson;
-        try {
-            JSONObject part    = new JSONObject();
-            JSONObject content = new JSONObject();
-            JSONObject body    = new JSONObject();
-            part.put("text", prompt);
-            content.put("parts", new JSONArray().put(part));
-            body.put("contents", new JSONArray().put(content));
-            requestBodyJson = body.toString();
         } catch (Exception e) {
-            throw new IOException("Failed to build request JSON: " + e.getMessage());
-        }
-        Log.d(TAG, "Gemini request body length: " + requestBodyJson.length() + " chars");
-
-        // ── Execute POST request ──────────────────────────────────────────────
-        OkHttpClient client  = new OkHttpClient();
-        RequestBody  reqBody = RequestBody.create(
-                requestBodyJson,
-                MediaType.parse("application/json; charset=utf-8"));
-        Request request = new Request.Builder()
-                .url(fullUrl)
-                .post(reqBody)          // explicitly POST, not GET
-                .addHeader("Content-Type", "application/json")
-                .build();
-
-        try (Response response = client.newCall(request).execute()) {
-            String responseBody = response.body() != null ? response.body().string() : "";
-            Log.d(TAG, "Gemini HTTP status: " + response.code());
-
-            if (!response.isSuccessful()) {
-                // Full error body shows the exact Gemini reason in Logcat
-                Log.e(TAG, "Gemini error body: " + responseBody);
-                throw new IOException("Gemini API error " + response.code()
-                        + " — see Logcat (FlashcardDeckActivity) for details.");
-            }
-
-            Log.d(TAG, "Gemini success — parsing response");
-            // Parse: candidates[0].content.parts[0].text
-            JSONObject json = new JSONObject(responseBody);
-            return json.getJSONArray("candidates")
-                       .getJSONObject(0)
-                       .getJSONObject("content")
-                       .getJSONArray("parts")
-                       .getJSONObject(0)
-                       .getString("text");
-        } catch (IOException e) {
-            Log.e(TAG, "Gemini IO error", e);
-            throw e;
-        } catch (Exception e) {
-            Log.e(TAG, "Gemini parse error", e);
-            throw new IOException("Failed to parse Gemini response: " + e.getMessage());
+            Log.e(TAG, "Gemini init error", e);
+            loadingDialog.dismiss();
+            Toast.makeText(this,
+                    "Failed to start AI: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
