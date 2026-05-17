@@ -59,7 +59,7 @@ public class FlashcardDeckActivity extends AppCompatActivity {
     };
 
     private static final String TAG            = "FlashcardDeckActivity";
-    private static final String GROQ_MODEL     = "llama3-8b-8192";
+    private static final String GROQ_MODEL     = "llama-3.1-8b-instant";
 
     private DeckAdapter             deckAdapter;
     private final Map<String, Integer> subjectMap = new LinkedHashMap<>();
@@ -405,6 +405,7 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                 Request request = new Request.Builder()
                         .url(url)
                         .addHeader("Authorization", "Bearer " + apiKey)
+                        .addHeader("Content-Type", "application/json")
                         .post(body)
                         .build();
 
