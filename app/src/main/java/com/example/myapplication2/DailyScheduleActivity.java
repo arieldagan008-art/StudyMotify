@@ -3,39 +3,50 @@ package com.example.myapplication2;
 import android.annotation.SuppressLint;
 import android.app.TimePickerDialog;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public class DailyScheduleActivity extends AppCompatActivity {
 
-    private Button      btnGenerate;
-    private ProgressBar pbLoading;
-    private RecyclerView rvSchedule;
-    private TextView    tvEmpty;
-    private CardView    cvVelocitySummary;
-    private TextView    tvVelocitySummary;
+    private Button               btnGenerate;
+    private ProgressBar          pbLoading;
+    private RecyclerView         rvSchedule;
+    private TextView             tvEmpty;
+    private CardView             cvVelocitySummary;
+    private TextView             tvVelocitySummary;
+    private FloatingActionButton fabAddSlot;
 
     private final List<Goal>        goals    = new ArrayList<>();
     private final List<ProgressLog> logs     = new ArrayList<>();
@@ -69,6 +80,10 @@ public class DailyScheduleActivity extends AppCompatActivity {
         rvSchedule.setLayoutManager(new LinearLayoutManager(this));
         scheduleAdapter = new ScheduleAdapter(this, schedule, this::onSlotClicked);
         rvSchedule.setAdapter(scheduleAdapter);
+        attachItemTouchHelper();
+
+        fabAddSlot = findViewById(R.id.fab_add_slot);
+        fabAddSlot.setOnClickListener(v -> showAddTaskDialog());
 
         btnGenerate.setOnClickListener(v -> {
             if (!goalsLoaded || !logsLoaded) {
@@ -220,6 +235,160 @@ public class DailyScheduleActivity extends AppCompatActivity {
 
     private void showLoading(boolean show) {
         pbLoading.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    // ─── ItemTouchHelper: drag-to-reorder + swipe-to-delete ──────────────────
+
+    private void attachItemTouchHelper() {
+        ColorDrawable swipeBg = new ColorDrawable(Color.parseColor("#F44336"));
+
+        ItemTouchHelper.SimpleCallback callback = new ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP | ItemTouchHelper.DOWN,
+                ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+
+            @Override
+            public boolean onMove(@NonNull RecyclerView rv,
+                                  @NonNull RecyclerView.ViewHolder from,
+                                  @NonNull RecyclerView.ViewHolder to) {
+                int fromPos = from.getAdapterPosition();
+                int toPos   = to.getAdapterPosition();
+                Collections.swap(schedule, fromPos, toPos);
+                scheduleAdapter.notifyItemMoved(fromPos, toPos);
+                return true;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int pos = viewHolder.getAdapterPosition();
+                ScheduleItem removed = schedule.remove(pos);
+                scheduleAdapter.notifyItemRemoved(pos);
+                Toast.makeText(DailyScheduleActivity.this,
+                        "\"" + removed.goalName + "\" removed.", Toast.LENGTH_SHORT).show();
+                if (schedule.isEmpty()) {
+                    tvEmpty.setText("Tap '✨ Generate My Schedule'\nto build your day.");
+                    tvEmpty.setVisibility(View.VISIBLE);
+                    rvSchedule.setVisibility(View.GONE);
+                }
+            }
+
+            // Save to Firebase once the drag or swipe gesture fully completes
+            @Override
+            public void clearView(@NonNull RecyclerView rv,
+                                  @NonNull RecyclerView.ViewHolder viewHolder) {
+                super.clearView(rv, viewHolder);
+                saveScheduleToFirebase();
+            }
+
+            @Override
+            public void onChildDraw(@NonNull Canvas c,
+                                    @NonNull RecyclerView recyclerView,
+                                    @NonNull RecyclerView.ViewHolder viewHolder,
+                                    float dX, float dY,
+                                    int actionState, boolean isCurrentlyActive) {
+                super.onChildDraw(c, recyclerView, viewHolder,
+                        dX, dY, actionState, isCurrentlyActive);
+                View item = viewHolder.itemView;
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    if (dX > 0) {
+                        swipeBg.setBounds(item.getLeft(), item.getTop(),
+                                item.getLeft() + (int) dX, item.getBottom());
+                    } else {
+                        swipeBg.setBounds(item.getRight() + (int) dX, item.getTop(),
+                                item.getRight(), item.getBottom());
+                    }
+                    swipeBg.draw(c);
+                }
+            }
+        };
+
+        new ItemTouchHelper(callback).attachToRecyclerView(rvSchedule);
+    }
+
+    // ─── FAB: manually add a task ─────────────────────────────────────────────
+
+    private void showAddTaskDialog() {
+        int dp = Math.round(getResources().getDisplayMetrics().density);
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(24 * dp, 8 * dp, 24 * dp, 0);
+
+        EditText etName = new EditText(this);
+        etName.setHint("Task name");
+        etName.setInputType(InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        LinearLayout.LayoutParams lpName = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        lpName.bottomMargin = 12 * dp;
+        etName.setLayoutParams(lpName);
+
+        EditText etDuration = new EditText(this);
+        etDuration.setHint("Duration (minutes, e.g. 30)");
+        etDuration.setInputType(InputType.TYPE_CLASS_NUMBER);
+
+        layout.addView(etName);
+        layout.addView(etDuration);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Add Task")
+                .setView(layout)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String name   = etName.getText().toString().trim();
+                    String durStr = etDuration.getText().toString().trim();
+
+                    if (name.isEmpty()) {
+                        Toast.makeText(this, "Task name is required.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    int duration = 30;
+                    try {
+                        if (!durStr.isEmpty()) duration = Math.max(1, Integer.parseInt(durStr));
+                    } catch (NumberFormatException ignored) {}
+
+                    // Place new task at the end of the last scheduled item
+                    int startH = 8, startM = 0;
+                    if (!schedule.isEmpty()) {
+                        ScheduleItem last = schedule.get(schedule.size() - 1);
+                        int endTotal = last.startHour * 60 + last.startMinute
+                                + last.durationMinutes;
+                        startH = Math.min(endTotal / 60, 22);
+                        startM = (startH < 22) ? endTotal % 60 : 0;
+                    }
+
+                    ScheduleItem item      = new ScheduleItem();
+                    item.goalId            = "manual_" + System.currentTimeMillis();
+                    item.goalName          = name;
+                    item.startHour         = startH;
+                    item.startMinute       = startM;
+                    item.durationMinutes   = duration;
+                    item.unitsPlanned      = 0;
+                    item.minutesPerUnit    = duration;
+                    item.isFixedEvent      = true;
+
+                    schedule.add(item);
+                    scheduleAdapter.notifyItemInserted(schedule.size() - 1);
+                    rvSchedule.scrollToPosition(schedule.size() - 1);
+
+                    tvEmpty.setVisibility(View.GONE);
+                    rvSchedule.setVisibility(View.VISIBLE);
+
+                    saveScheduleToFirebase();
+                    Toast.makeText(this, "\"" + name + "\" added.", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // ─── Firebase: persist current schedule ──────────────────────────────────
+
+    private void saveScheduleToFirebase() {
+        if (!FirebaseHelper.getInstance().isLoggedIn()) return;
+        FirebaseHelper.getInstance()
+                .getCurrentUserRef()
+                .child("savedSchedule")
+                .setValue(schedule);
     }
 
     // ─── Inner adapter ────────────────────────────────────────────────────────
