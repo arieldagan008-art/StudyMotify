@@ -38,6 +38,7 @@ public class Resource {
     public String  getType()         { return type         != null ? type         : "Other"; }
     public String  getUrl()          { return url          != null ? url          : ""; }
     public String  getUploaderName() { return uploaderName != null ? uploaderName : "Anonymous"; }
+    public String  getUploaderUid()  { return uploaderUid  != null ? uploaderUid  : ""; }
     public String  getGrade()        { return grade        != null ? grade        : ""; }
     public long    getLikesCount()   { return likesCount; }
 
