@@ -100,17 +100,7 @@ public class AiQuizActivity extends AppCompatActivity {
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-                String selected = parent.getItemAtPosition(pos).toString();
-                currentIndex = 0;
-                resetEvaluationState();
-                filteredExercises.clear();
-                for (JSONObject ex : allExercises) {
-                    String exLevel = ex.optString("level", "").trim();
-                    if ("All Levels".equals(selected) || selected.equalsIgnoreCase(exLevel)) {
-                        filteredExercises.add(ex);
-                    }
-                }
-                showQuestion();
+                applyFilter(parent.getItemAtPosition(pos).toString());
             }
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
@@ -178,22 +168,23 @@ public class AiQuizActivity extends AppCompatActivity {
     }
 
     private void showQuestion() {
-        boolean empty = filteredExercises.isEmpty();
-
         resetEvaluationState();
-
-        tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
-        cardQuestion.setVisibility(empty ? View.GONE : View.VISIBLE);
-        btnReveal.setVisibility(empty ? View.GONE : View.VISIBLE);
-        btnPrev.setVisibility(empty ? View.GONE : View.VISIBLE);
-        btnNext.setVisibility(empty ? View.GONE : View.VISIBLE);
-        tvProgress.setVisibility(empty ? View.GONE : View.VISIBLE);
-        btnCheckAnswer.setVisibility(empty ? View.GONE : View.VISIBLE);
-        etUserAnswer.setVisibility(empty ? View.GONE : View.VISIBLE);
         tvAnswer.setVisibility(View.GONE);
         btnReveal.setText("Reveal Answer");
+        tvEmpty.setVisibility(View.GONE);
+        cardQuestion.setVisibility(View.VISIBLE);
 
-        if (empty) return;
+        if (filteredExercises.isEmpty()) {
+            tvQuestion.setText("No questions available for this level.\nSwitch to another level!");
+            tvProgress.setVisibility(View.GONE);
+            etUserAnswer.setVisibility(View.GONE);
+            setNavEnabled(false);
+            return;
+        }
+
+        tvProgress.setVisibility(View.VISIBLE);
+        etUserAnswer.setVisibility(View.VISIBLE);
+        setNavEnabled(true);
 
         JSONObject ex = filteredExercises.get(currentIndex);
         tvQuestion.setText(ex.optString("question", ""));
@@ -204,6 +195,18 @@ public class AiQuizActivity extends AppCompatActivity {
         btnPrev.setAlpha(currentIndex > 0 ? 1f : 0.4f);
         btnNext.setEnabled(currentIndex < filteredExercises.size() - 1);
         btnNext.setAlpha(currentIndex < filteredExercises.size() - 1 ? 1f : 0.4f);
+    }
+
+    private void setNavEnabled(boolean enabled) {
+        float alpha = enabled ? 1f : 0.4f;
+        btnPrev.setEnabled(enabled);
+        btnPrev.setAlpha(alpha);
+        btnNext.setEnabled(enabled);
+        btnNext.setAlpha(alpha);
+        btnReveal.setEnabled(enabled);
+        btnReveal.setAlpha(alpha);
+        btnCheckAnswer.setEnabled(enabled);
+        btnCheckAnswer.setAlpha(alpha);
     }
 
     private void checkAnswerWithAi(String question, String correctAnswer, String userAnswer) {
