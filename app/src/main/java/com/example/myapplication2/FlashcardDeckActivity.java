@@ -443,21 +443,29 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                                 Toast.LENGTH_LONG).show();
                     });
 
-                } catch (Exception e) {
-                    Log.e(TAG, "Gemini SDK error", e);
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    Log.e(TAG, "Gemini SDK error", t);
                     mainHandler.post(() -> {
                         loadingDialog.dismiss();
-                        Toast.makeText(this,
-                                "AI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        new AlertDialog.Builder(FlashcardDeckActivity.this)
+                                .setTitle("AI Error Details")
+                                .setMessage(t.getClass().getSimpleName() + "\n\n" + t.getMessage())
+                                .setPositiveButton("OK", null)
+                                .show();
                     });
                 }
             }, aiExecutor);
 
-        } catch (Exception e) {
-            Log.e(TAG, "Gemini init error", e);
+        } catch (Throwable t) {
+            t.printStackTrace();
+            Log.e(TAG, "Gemini init error", t);
             loadingDialog.dismiss();
-            Toast.makeText(this,
-                    "Failed to start AI: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            new AlertDialog.Builder(FlashcardDeckActivity.this)
+                    .setTitle("AI Error Details")
+                    .setMessage(t.getClass().getSimpleName() + "\n\n" + t.getMessage())
+                    .setPositiveButton("OK", null)
+                    .show();
         }
     }
 
