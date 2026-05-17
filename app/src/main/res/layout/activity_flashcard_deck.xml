@@ -6,27 +6,35 @@
     android:layout_height="match_parent"
     android:background="#F5F5F5">
 
-    <!-- Toolbar -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/deckToolbar"
+    <!-- Toolbar wrapped in AppBarLayout so it sits above the RecyclerView
+         and its touch area does not overlap the scrollable content -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#2196F3"
-        android:titleTextColor="@android:color/white"
-        android:subtitleTextColor="#CCDDFF"
-        app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@android:color/white"
-        app:layout_scrollFlags="scroll|enterAlways" />
+        android:layout_height="wrap_content">
 
-    <!-- Subject grid -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/deckToolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#2196F3"
+            android:titleTextColor="@android:color/white"
+            android:subtitleTextColor="#CCDDFF"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="@android:color/white"
+            app:layout_scrollFlags="scroll|enterAlways" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Subject grid — layout_behavior keeps it below the AppBarLayout -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_subjects"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingTop="?attr/actionBarSize"
         android:paddingBottom="80dp"
         android:paddingHorizontal="8dp"
-        android:clipToPadding="false" />
+        android:clipToPadding="false"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
     <!-- FAB: Generate with AI (sits above the Add Card FAB) -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
