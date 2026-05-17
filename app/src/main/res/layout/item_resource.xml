@@ -108,6 +108,22 @@
                 app:tint="#CCCCCC"
                 android:layout_marginStart="4dp" />
 
+            <!-- Delete (owner only — hidden by default) -->
+            <TextView
+                android:id="@+id/btn_delete_resource"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🗑"
+                android:textSize="18sp"
+                android:textColor="#E53935"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:layout_marginStart="6dp"
+                android:visibility="gone"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Delete resource" />
+
         </LinearLayout>
 
         <!-- Divider -->

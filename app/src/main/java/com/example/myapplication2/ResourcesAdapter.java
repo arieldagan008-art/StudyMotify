@@ -12,6 +12,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.database.DataSnapshot;
@@ -63,6 +64,10 @@ public class ResourcesAdapter extends RecyclerView.Adapter<ResourcesAdapter.Reso
         updateLikeButton(holder, res.getLikesCount(), liked);
 
         holder.btnLike.setOnClickListener(v -> toggleLike(res, holder));
+
+        boolean isOwner = currentUid != null && currentUid.equals(res.getUploaderUid());
+        holder.btnDelete.setVisibility(isOwner ? View.VISIBLE : View.GONE);
+        holder.btnDelete.setOnClickListener(v -> confirmDelete(res));
 
         holder.itemView.setOnClickListener(v -> openUrl(res.getUrl()));
     }
@@ -146,6 +151,33 @@ public class ResourcesAdapter extends RecyclerView.Adapter<ResourcesAdapter.Reso
         holder.tvLikesCount.setText(count == 1 ? "1 like" : count + " likes");
     }
 
+    // ─── Delete resource ──────────────────────────────────────────────────────
+
+    private void confirmDelete(Resource res) {
+        new AlertDialog.Builder(context)
+                .setTitle("Delete Resource")
+                .setMessage("Are you sure you want to delete this resource?")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    FirebaseHelper.getInstance()
+                            .getDatabase()
+                            .getReference("communities")
+                            .child(communityId)
+                            .child("resources")
+                            .child(res.getId())
+                            .removeValue();
+
+                    int pos = resources.indexOf(res);
+                    if (pos >= 0) {
+                        resources.remove(pos);
+                        notifyItemRemoved(pos);
+                    }
+
+                    Toast.makeText(context, "Resource removed.", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     // ─── Open URL ─────────────────────────────────────────────────────────────
 
     private void openUrl(String url) {
@@ -171,7 +203,7 @@ public class ResourcesAdapter extends RecyclerView.Adapter<ResourcesAdapter.Reso
     // ─── ViewHolder ───────────────────────────────────────────────────────────
 
     static class ResourceVH extends RecyclerView.ViewHolder {
-        TextView tvIcon, tvTitle, tvUrl, tvType, tvUploader, tvLikesCount;
+        TextView tvIcon, tvTitle, tvUrl, tvType, tvUploader, tvLikesCount, btnDelete;
         Button   btnLike;
 
         ResourceVH(@NonNull View itemView) {
@@ -183,6 +215,7 @@ public class ResourcesAdapter extends RecyclerView.Adapter<ResourcesAdapter.Reso
             tvUploader   = itemView.findViewById(R.id.tv_resource_uploader);
             tvLikesCount = itemView.findViewById(R.id.tv_likes_count);
             btnLike      = itemView.findViewById(R.id.btn_like);
+            btnDelete    = itemView.findViewById(R.id.btn_delete_resource);
         }
     }
 }
