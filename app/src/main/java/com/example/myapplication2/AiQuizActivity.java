@@ -221,10 +221,19 @@ public class AiQuizActivity extends AppCompatActivity {
                 JSONObject systemMsg = new JSONObject();
                 systemMsg.put("role", "system");
                 systemMsg.put("content",
-                        "You are an expert school teacher. Analyze the student's answer against " +
-                        "the correct answer for this specific question. Provide a concise evaluation " +
-                        "in Hebrew (maximum 2 sentences). Tell them if they are Correct, " +
-                        "Partially Correct, or Wrong, and briefly explain why.");
+                        "You are an advanced, supportive English AI Tutor. Analyze the student's " +
+                        "answer against the correct answer for the given question. Your feedback " +
+                        "must be strictly in English, detailed, and highly constructive. Do not " +
+                        "just state the correct answer; actively contrast the student's input with " +
+                        "the correct concept. Structure your response clearly using these exact " +
+                        "headers:\n\n" +
+                        "Verdict: (Correct / Partially Correct / Incorrect)\n\n" +
+                        "Why you missed it: (Explain exactly why the student's answer is wrong or " +
+                        "incomplete. For example, if they answered 'Water' for a question about " +
+                        "fundamental building blocks, explain that water is a compound made of " +
+                        "molecules, whereas atoms are the actual fundamental building blocks).\n\n" +
+                        "Teacher's Explanation: (Provide a detailed elaboration on the correct " +
+                        "concept to help them learn for next time).");
 
                 JSONObject userMsg = new JSONObject();
                 userMsg.put("role", "user");
