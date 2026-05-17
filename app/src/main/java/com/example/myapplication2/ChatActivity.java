@@ -8,12 +8,17 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.widget.SearchView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -31,6 +36,7 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -61,11 +67,17 @@ public class ChatActivity extends AppCompatActivity {
     private TextView         tvNoResources;
     private Button           btnAddResource;
 
-    private final List<Resource> resourceList = new ArrayList<>();
+    private final List<Resource> allResources      = new ArrayList<>();
+    private final List<Resource> resourceList      = new ArrayList<>();
     private ResourcesAdapter     resourcesAdapter;
 
     private DatabaseReference    resourcesRef;
     private ValueEventListener   resourcesListener;
+
+    // ── Filter bar ────────────────────────────────────────────────────────────
+    private LinearLayout filterBarResources;
+    private SearchView   svResources;
+    private Spinner      spinnerGradeFilter;
 
     // ── Tab buttons ───────────────────────────────────────────────────────────
     private Button btnTabChat;
@@ -128,6 +140,27 @@ public class ChatActivity extends AppCompatActivity {
 
         btnAddResource.setOnClickListener(v -> showAddResourceDialog());
 
+        // Filter bar
+        filterBarResources = findViewById(R.id.filter_bar_resources);
+        svResources        = findViewById(R.id.sv_resources);
+        spinnerGradeFilter = findViewById(R.id.spinner_grade_filter);
+
+        String[] grades = {"All Grades","Seventh","Eighth","Ninth","Tenth","Eleventh","Twelfth"};
+        ArrayAdapter<String> gradeFilterAdapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_spinner_item, grades);
+        gradeFilterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerGradeFilter.setAdapter(gradeFilterAdapter);
+
+        spinnerGradeFilter.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> p, android.view.View v, int pos, long id) { applyFilter(); }
+            @Override public void onNothingSelected(AdapterView<?> p) {}
+        });
+
+        svResources.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override public boolean onQueryTextSubmit(String q) { applyFilter(); return true; }
+            @Override public boolean onQueryTextChange(String t) { applyFilter(); return true; }
+        });
+
         // Firebase refs
         DatabaseReference communityRef = FirebaseHelper.getInstance()
                 .getDatabase().getReference("communities").child(communityId);
@@ -152,7 +185,8 @@ public class ChatActivity extends AppCompatActivity {
         tvNoMessages.setVisibility(messageList.isEmpty() ? View.VISIBLE : View.GONE);
         messageInputBar.setVisibility(View.VISIBLE);
 
-        // Resources section hidden
+        // Resources section + filter bar hidden
+        filterBarResources.setVisibility(View.GONE);
         rvResources.setVisibility(View.GONE);
         tvNoResources.setVisibility(View.GONE);
         btnAddResource.setVisibility(View.GONE);
@@ -167,9 +201,10 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void showResourcesTab() {
-        // Resources section visible
+        // Filter bar + resources section visible
+        filterBarResources.setVisibility(View.VISIBLE);
+        applyFilter();
         rvResources.setVisibility(View.VISIBLE);
-        tvNoResources.setVisibility(resourceList.isEmpty() ? View.VISIBLE : View.GONE);
         btnAddResource.setVisibility(View.VISIBLE);
 
         // Chat section hidden
@@ -254,26 +289,21 @@ public class ChatActivity extends AppCompatActivity {
 
     // ─── Resources listener ───────────────────────────────────────────────────
 
-    @SuppressLint("NotifyDataSetChanged")
     private void attachResourcesListener() {
         resourcesListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                resourceList.clear();
+                allResources.clear();
                 for (DataSnapshot child : snapshot.getChildren()) {
                     Resource res = child.getValue(Resource.class);
                     if (res != null) {
                         if (res.id == null) res.id = child.getKey();
-                        resourceList.add(res);
+                        allResources.add(res);
                     }
                 }
-                // Sort by likesCount descending (most liked first)
-                Collections.sort(resourceList,
+                Collections.sort(allResources,
                         (a, b) -> Long.compare(b.getLikesCount(), a.getLikesCount()));
-                resourcesAdapter.notifyDataSetChanged();
-                if (rvResources.getVisibility() == View.VISIBLE) {
-                    tvNoResources.setVisibility(resourceList.isEmpty() ? View.VISIBLE : View.GONE);
-                }
+                applyFilter();
             }
 
             @Override
@@ -285,15 +315,45 @@ public class ChatActivity extends AppCompatActivity {
         resourcesRef.addValueEventListener(resourcesListener);
     }
 
+    @SuppressLint("NotifyDataSetChanged")
+    private void applyFilter() {
+        String keyword = svResources != null
+                ? svResources.getQuery().toString().trim().toLowerCase(Locale.getDefault())
+                : "";
+        String grade = spinnerGradeFilter != null && spinnerGradeFilter.getSelectedItem() != null
+                ? spinnerGradeFilter.getSelectedItem().toString()
+                : "All Grades";
+
+        resourceList.clear();
+        for (Resource res : allResources) {
+            boolean matchesKeyword = keyword.isEmpty()
+                    || res.getTitle().toLowerCase(Locale.getDefault()).contains(keyword);
+            boolean matchesGrade = "All Grades".equals(grade)
+                    || grade.equals(res.getGrade());
+            if (matchesKeyword && matchesGrade) resourceList.add(res);
+        }
+        resourcesAdapter.notifyDataSetChanged();
+        if (rvResources.getVisibility() == View.VISIBLE) {
+            tvNoResources.setVisibility(resourceList.isEmpty() ? View.VISIBLE : View.GONE);
+        }
+    }
+
     // ─── Add Resource dialog ──────────────────────────────────────────────────
 
     private void showAddResourceDialog() {
         View dialogView = LayoutInflater.from(this)
                 .inflate(R.layout.dialog_add_resource, null);
 
-        RadioGroup rgType      = dialogView.findViewById(R.id.rg_resource_type);
-        EditText   etTitle     = dialogView.findViewById(R.id.et_resource_title);
-        EditText   etUrl       = dialogView.findViewById(R.id.et_resource_url);
+        RadioGroup rgType  = dialogView.findViewById(R.id.rg_resource_type);
+        EditText   etTitle = dialogView.findViewById(R.id.et_resource_title);
+        EditText   etUrl   = dialogView.findViewById(R.id.et_resource_url);
+        Spinner    spGrade = dialogView.findViewById(R.id.spinner_grade);
+
+        String[] gradeOptions = {"Seventh","Eighth","Ninth","Tenth","Eleventh","Twelfth"};
+        ArrayAdapter<String> gradeAdapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_spinner_item, gradeOptions);
+        gradeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spGrade.setAdapter(gradeAdapter);
 
         new AlertDialog.Builder(this)
                 .setTitle("Add Resource")
@@ -303,6 +363,7 @@ public class ChatActivity extends AppCompatActivity {
                     String url   = etUrl.getText().toString().trim();
                     String type  = (rgType.getCheckedRadioButtonId() == R.id.rb_exam)
                             ? "Exam" : "Summary";
+                    String grade = spGrade.getSelectedItem().toString();
 
                     if (TextUtils.isEmpty(title)) {
                         Toast.makeText(this, "Please enter a title.", Toast.LENGTH_SHORT).show();
@@ -313,22 +374,17 @@ public class ChatActivity extends AppCompatActivity {
                         return;
                     }
 
-                    pushResource(title, type, url);
+                    pushResource(title, type, url, grade);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void pushResource(String title, String type, String url) {
+    private void pushResource(String title, String type, String url, String grade) {
         DatabaseReference newRef = resourcesRef.push();
         Resource resource = new Resource(
-                newRef.getKey(),
-                title,
-                type,
-                url,
-                currentDisplayName,
-                currentUid
-        );
+                newRef.getKey(), title, type, url, currentDisplayName, currentUid);
+        resource.grade = grade;
         newRef.setValue(resource)
                 .addOnSuccessListener(aVoid ->
                         Toast.makeText(this, "Resource added!", Toast.LENGTH_SHORT).show())

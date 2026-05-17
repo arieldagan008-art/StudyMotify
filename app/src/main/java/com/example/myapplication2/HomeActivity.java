@@ -81,8 +81,17 @@ public class HomeActivity extends AppCompatActivity {
         layoutOverloadBanner = findViewById(R.id.layout_overload_banner);
         tvSystemStatus       = findViewById(R.id.tv_system_status);
 
+        findViewById(R.id.cardDailySchedule).setOnClickListener(v ->
+                startActivity(new Intent(this, DailyScheduleActivity.class)));
+
         findViewById(R.id.cardFlashcards).setOnClickListener(v ->
                 startActivity(new Intent(this, FlashcardDeckActivity.class)));
+
+        findViewById(R.id.cardCommunityHub).setOnClickListener(v ->
+                startActivity(new Intent(this, CommunityActivity.class)));
+
+        findViewById(R.id.cardGoalsFixed).setOnClickListener(v ->
+                startActivity(new Intent(this, AddGoalActivity.class)));
 
         rvGoals.setLayoutManager(new LinearLayoutManager(this));
         goalList = new ArrayList<>();

@@ -13,6 +13,7 @@ public class Resource {
     public String  uploaderUid;
     public long    timestamp;
     public long    likesCount;
+    public String  grade;           // e.g. "Seventh", "Eighth", …, "Twelfth"
     /** Map of uid → true for every user who has liked this resource. */
     public Map<String, Boolean> likes;
 
@@ -37,6 +38,7 @@ public class Resource {
     public String  getType()         { return type         != null ? type         : "Other"; }
     public String  getUrl()          { return url          != null ? url          : ""; }
     public String  getUploaderName() { return uploaderName != null ? uploaderName : "Anonymous"; }
+    public String  getGrade()        { return grade        != null ? grade        : ""; }
     public long    getLikesCount()   { return likesCount; }
 
     public boolean isLikedBy(String uid) {

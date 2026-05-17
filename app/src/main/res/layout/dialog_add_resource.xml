@@ -88,4 +88,20 @@
         android:paddingVertical="10dp"
         android:textSize="14sp" />
 
+    <!-- Grade level -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Grade Level"
+        android:textSize="12sp"
+        android:textColor="#555555"
+        android:textStyle="bold"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="4dp" />
+
+    <Spinner
+        android:id="@+id/spinner_grade"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
 </LinearLayout>

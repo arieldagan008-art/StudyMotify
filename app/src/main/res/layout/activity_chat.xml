@@ -126,6 +126,37 @@
 
     </LinearLayout>
 
+    <!-- ── Resources Filter Bar (visible only in Resources tab) ─────────── -->
+    <LinearLayout
+        android:id="@+id/filter_bar_resources"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@android:color/white"
+        android:elevation="1dp"
+        android:padding="8dp"
+        android:gravity="center_vertical"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tab_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/sv_resources"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            app:queryHint="Search resources…"
+            app:iconifiedByDefault="false" />
+
+        <Spinner
+            android:id="@+id/spinner_grade_filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp" />
+
+    </LinearLayout>
+
     <!-- ── CHAT SECTION ────────────────────────────────────────────────────── -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_messages"
@@ -161,7 +192,7 @@
         android:paddingBottom="8dp"
         android:clipToPadding="false"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/tab_bar"
+        app:layout_constraintTop_toBottomOf="@id/filter_bar_resources"
         app:layout_constraintBottom_toTopOf="@id/bottom_bar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -176,7 +207,7 @@
         android:gravity="center"
         android:lineSpacingMultiplier="1.4"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/tab_bar"
+        app:layout_constraintTop_toBottomOf="@id/filter_bar_resources"
         app:layout_constraintBottom_toTopOf="@id/bottom_bar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
