@@ -51,6 +51,15 @@
             android:name=".DailyScheduleActivity"
             android:exported="false" />
         <activity
+            android:name=".AiResultsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AiSummaryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AiQuizActivity"
+            android:exported="false" />
+        <activity
             android:name=".HomeActivity"
             android:exported="false" />
         <activity

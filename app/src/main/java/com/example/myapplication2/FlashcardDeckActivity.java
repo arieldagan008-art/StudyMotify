@@ -12,7 +12,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -487,8 +486,23 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                     final JSONObject finalResult = result;
                     mainHandler.post(() -> {
                         loadingDialog.dismiss();
-                        showAiResultsDialog(finalResult, subject,
-                                wantSummary, wantExercises, wantFlashcards, finalCount);
+                        Intent intent = new Intent(
+                                FlashcardDeckActivity.this, AiResultsActivity.class);
+                        intent.putExtra(AiResultsActivity.EXTRA_SUBJECT, subject);
+                        intent.putExtra(AiResultsActivity.EXTRA_WANT_SUMMARY,    wantSummary);
+                        intent.putExtra(AiResultsActivity.EXTRA_WANT_EXERCISES,  wantExercises);
+                        intent.putExtra(AiResultsActivity.EXTRA_WANT_FLASHCARDS, wantFlashcards);
+                        intent.putExtra(AiResultsActivity.EXTRA_FLASHCARD_COUNT, finalCount);
+                        if (wantSummary && finalResult.has("summary")) {
+                            intent.putExtra(AiResultsActivity.EXTRA_SUMMARY,
+                                    finalResult.optString("summary", ""));
+                        }
+                        if (wantExercises && finalResult.has("exercises")) {
+                            JSONArray ex = finalResult.optJSONArray("exercises");
+                            intent.putExtra(AiResultsActivity.EXTRA_EXERCISES,
+                                    ex != null ? ex.toString() : "");
+                        }
+                        startActivity(intent);
                     });
                 }
 
@@ -505,61 +519,6 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                 });
             }
         });
-    }
-
-    private void showAiResultsDialog(JSONObject result, String subject,
-                                      boolean wantSummary, boolean wantExercises,
-                                      boolean wantFlashcards, int flashcardCount) {
-        StringBuilder sb = new StringBuilder();
-
-        if (wantSummary && result.has("summary")) {
-            sb.append("SUMMARY\n")
-              .append("─────────────────────\n")
-              .append(result.optString("summary", "")).append("\n\n");
-        }
-
-        if (wantExercises && result.has("exercises")) {
-            sb.append("PRACTICE EXERCISES\n")
-              .append("─────────────────────\n");
-            JSONArray exercises = result.optJSONArray("exercises");
-            if (exercises != null) {
-                for (int i = 0; i < exercises.length(); i++) {
-                    JSONObject ex = exercises.optJSONObject(i);
-                    if (ex != null) {
-                        sb.append(i + 1).append(". [")
-                          .append(ex.optString("level", "?")).append("] ")
-                          .append(ex.optString("question", "")).append("\n")
-                          .append("   → ").append(ex.optString("answer", "")).append("\n\n");
-                    }
-                }
-            }
-        }
-
-        if (wantFlashcards) {
-            sb.append("FLASHCARDS\n")
-              .append("─────────────────────\n");
-            if (flashcardCount > 0) {
-                sb.append(flashcardCount).append(" card")
-                  .append(flashcardCount == 1 ? "" : "s")
-                  .append(" added to \"").append(subject).append("\" deck.");
-            } else {
-                sb.append("No flashcards could be parsed from the AI response.");
-            }
-        }
-
-        ScrollView scrollView = new ScrollView(this);
-        TextView tvContent = new TextView(this);
-        tvContent.setText(sb.toString());
-        tvContent.setPadding(48, 24, 48, 24);
-        tvContent.setTextSize(13f);
-        tvContent.setLineSpacing(4f, 1.2f);
-        scrollView.addView(tvContent);
-
-        new AlertDialog.Builder(this)
-                .setTitle("✨ AI Learning Suite Results")
-                .setView(scrollView)
-                .setPositiveButton("Done", null)
-                .show();
     }
 
     private List<Flashcard> parseFlashcardsFromJson(JSONArray arr, String subject) {
