@@ -59,7 +59,7 @@ public class FlashcardDeckActivity extends AppCompatActivity {
     };
 
     private static final String TAG            = "FlashcardDeckActivity";
-    private static final String GEMINI_MODEL   = "gemini-1.5-flash";
+    private static final String GEMINI_MODEL   = "gemini-2.0-flash";
 
     private DeckAdapter             deckAdapter;
     private final Map<String, Integer> subjectMap = new LinkedHashMap<>();
@@ -384,7 +384,7 @@ public class FlashcardDeckActivity extends AppCompatActivity {
 
         aiExecutor.execute(() -> {
             try {
-                String url = "https://generativelanguage.googleapis.com/v1beta/models/"
+                String url = "https://generativelanguage.googleapis.com/v1/models/"
                         + GEMINI_MODEL + ":generateContent?key=" + apiKey;
 
                 JSONObject textPart = new JSONObject();
