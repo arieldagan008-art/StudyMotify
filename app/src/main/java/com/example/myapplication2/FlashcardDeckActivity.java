@@ -59,7 +59,7 @@ public class FlashcardDeckActivity extends AppCompatActivity {
     };
 
     private static final String TAG            = "FlashcardDeckActivity";
-    private static final String GEMINI_MODEL   = "gemini-2.0-flash";
+    private static final String GROQ_MODEL     = "llama3-8b-8192";
 
     private DeckAdapter             deckAdapter;
     private final Map<String, Integer> subjectMap = new LinkedHashMap<>();
@@ -384,37 +384,33 @@ public class FlashcardDeckActivity extends AppCompatActivity {
 
         aiExecutor.execute(() -> {
             try {
-                String url = "https://generativelanguage.googleapis.com/v1/models/"
-                        + GEMINI_MODEL + ":generateContent?key=" + apiKey;
+                String url = "https://api.groq.com/openai/v1/chat/completions";
 
-                JSONObject textPart = new JSONObject();
-                textPart.put("text", prompt);
+                JSONObject messageObj = new JSONObject();
+                messageObj.put("role", "user");
+                messageObj.put("content", prompt);
 
-                JSONArray parts = new JSONArray();
-                parts.put(textPart);
-
-                JSONObject contentObj = new JSONObject();
-                contentObj.put("parts", parts);
-
-                JSONArray contents = new JSONArray();
-                contents.put(contentObj);
+                JSONArray messages = new JSONArray();
+                messages.put(messageObj);
 
                 JSONObject requestBodyJson = new JSONObject();
-                requestBodyJson.put("contents", contents);
+                requestBodyJson.put("model", GROQ_MODEL);
+                requestBodyJson.put("messages", messages);
 
-                Log.d(TAG, "Gemini REST POST → v1/models/" + GEMINI_MODEL);
+                Log.d(TAG, "Groq REST POST → " + url + " model=" + GROQ_MODEL);
 
                 OkHttpClient client = new OkHttpClient();
                 MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
                 RequestBody body = RequestBody.create(mediaType, requestBodyJson.toString());
                 Request request = new Request.Builder()
                         .url(url)
+                        .addHeader("Authorization", "Bearer " + apiKey)
                         .post(body)
                         .build();
 
                 try (Response response = client.newCall(request).execute()) {
                     String responseBody = response.body() != null ? response.body().string() : "";
-                    Log.d(TAG, "Gemini HTTP " + response.code() + ": " + responseBody);
+                    Log.d(TAG, "Groq HTTP " + response.code() + ": " + responseBody);
 
                     if (!response.isSuccessful()) {
                         String errorMsg = "HTTP " + response.code() + "\n\n" + responseBody;
@@ -431,14 +427,12 @@ public class FlashcardDeckActivity extends AppCompatActivity {
 
                     JSONObject json = new JSONObject(responseBody);
                     String text = json
-                            .getJSONArray("candidates")
+                            .getJSONArray("choices")
                             .getJSONObject(0)
-                            .getJSONObject("content")
-                            .getJSONArray("parts")
-                            .getJSONObject(0)
-                            .getString("text");
+                            .getJSONObject("message")
+                            .getString("content");
 
-                    Log.d(TAG, "Gemini raw text: " + text);
+                    Log.d(TAG, "Groq raw text: " + text);
 
                     List<Flashcard> cards = parseFlashcardsFromJson(text, subject);
                     if (cards.isEmpty()) {
