@@ -63,10 +63,8 @@ dependencies {
     implementation(libs.firebase.database)
     implementation(libs.firebase.auth)
 
-    // Official Google AI Generative AI (Gemini) SDK
-    implementation("com.google.ai.client.generativeai:generativeai:0.12.0")
-    // Guava for Android — needed for ListenableFuture (Java interop with the SDK)
-    implementation("com.google.guava:guava:32.1.3-android")
+    // OkHttp for direct Gemini REST calls
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

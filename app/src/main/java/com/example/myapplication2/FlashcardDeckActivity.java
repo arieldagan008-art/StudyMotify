@@ -31,11 +31,11 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
-import com.google.ai.client.generativeai.GenerativeModel;
-import com.google.ai.client.generativeai.java.GenerativeModelFutures;
-import com.google.ai.client.generativeai.type.Content;
-import com.google.ai.client.generativeai.type.GenerateContentResponse;
-import com.google.common.util.concurrent.ListenableFuture;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -376,56 +376,81 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                 .create();
         loadingDialog.show();
 
-        Log.d(TAG, "Gemini SDK — model: " + GEMINI_MODEL
-                + ", key prefix: " + apiKey.substring(0, Math.min(8, apiKey.length())) + "…");
-
         String prompt =
                 "Create 3-5 concise flashcards from the following study text. " +
                 "Return ONLY a raw JSON array — no markdown, no code fences, no explanation. " +
                 "Exact format: [{\"question\":\"...\",\"answer\":\"...\"}]\n\n" +
                 "Study text:\n" + studyText;
 
-        try {
-            // ── Initialize SDK model ──────────────────────────────────────────
-            GenerativeModel        gm    = new GenerativeModel(GEMINI_MODEL, apiKey);
-            GenerativeModelFutures model = GenerativeModelFutures.from(gm);
+        aiExecutor.execute(() -> {
+            try {
+                String url = "https://generativelanguage.googleapis.com/v1/models/"
+                        + GEMINI_MODEL + ":generateContent?key=" + apiKey;
 
-            Content content = new Content.Builder()
-                    .addText(prompt)
-                    .build();
+                JSONObject textPart = new JSONObject();
+                textPart.put("text", prompt);
 
-            // ── Async generate (SDK handles HTTP internally) ──────────────────
-            ListenableFuture<GenerateContentResponse> future =
-                    model.generateContent(content);
+                JSONArray parts = new JSONArray();
+                parts.put(textPart);
 
-            future.addListener(() -> {
-                try {
-                    GenerateContentResponse response = future.get();
-                    String text = response.getText();
-                    Log.d(TAG, "Gemini raw text: " + text);
+                JSONObject contentObj = new JSONObject();
+                contentObj.put("parts", parts);
 
-                    if (text == null || text.trim().isEmpty()) {
+                JSONArray contents = new JSONArray();
+                contents.put(contentObj);
+
+                JSONObject requestBodyJson = new JSONObject();
+                requestBodyJson.put("contents", contents);
+
+                Log.d(TAG, "Gemini REST POST → v1/models/" + GEMINI_MODEL);
+
+                OkHttpClient client = new OkHttpClient();
+                MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
+                RequestBody body = RequestBody.create(mediaType, requestBodyJson.toString());
+                Request request = new Request.Builder()
+                        .url(url)
+                        .post(body)
+                        .build();
+
+                try (Response response = client.newCall(request).execute()) {
+                    String responseBody = response.body() != null ? response.body().string() : "";
+                    Log.d(TAG, "Gemini HTTP " + response.code() + ": " + responseBody);
+
+                    if (!response.isSuccessful()) {
+                        String errorMsg = "HTTP " + response.code() + "\n\n" + responseBody;
                         mainHandler.post(() -> {
                             loadingDialog.dismiss();
-                            Toast.makeText(this,
-                                    "AI returned empty response. Try again.",
-                                    Toast.LENGTH_LONG).show();
+                            new AlertDialog.Builder(FlashcardDeckActivity.this)
+                                    .setTitle("AI Error Details")
+                                    .setMessage(errorMsg)
+                                    .setPositiveButton("OK", null)
+                                    .show();
                         });
                         return;
                     }
+
+                    JSONObject json = new JSONObject(responseBody);
+                    String text = json
+                            .getJSONArray("candidates")
+                            .getJSONObject(0)
+                            .getJSONObject("content")
+                            .getJSONArray("parts")
+                            .getJSONObject(0)
+                            .getString("text");
+
+                    Log.d(TAG, "Gemini raw text: " + text);
 
                     List<Flashcard> cards = parseFlashcardsFromJson(text, subject);
                     if (cards.isEmpty()) {
                         mainHandler.post(() -> {
                             loadingDialog.dismiss();
-                            Toast.makeText(this,
+                            Toast.makeText(FlashcardDeckActivity.this,
                                     "Could not parse AI response as flashcards. Try again.",
                                     Toast.LENGTH_LONG).show();
                         });
                         return;
                     }
 
-                    // Push cards to Firebase
                     for (Flashcard card : cards) {
                         DatabaseReference ref = FirebaseHelper.getInstance()
                                 .getCurrentUserRef()
@@ -437,36 +462,26 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                     int count = cards.size();
                     mainHandler.post(() -> {
                         loadingDialog.dismiss();
-                        Toast.makeText(this,
+                        Toast.makeText(FlashcardDeckActivity.this,
                                 count + " card" + (count == 1 ? "" : "s")
-                                + " added to \"" + subject + "\"!",
+                                        + " added to \"" + subject + "\"!",
                                 Toast.LENGTH_LONG).show();
                     });
-
-                } catch (Throwable t) {
-                    t.printStackTrace();
-                    Log.e(TAG, "Gemini SDK error", t);
-                    mainHandler.post(() -> {
-                        loadingDialog.dismiss();
-                        new AlertDialog.Builder(FlashcardDeckActivity.this)
-                                .setTitle("AI Error Details")
-                                .setMessage(t.getClass().getSimpleName() + "\n\n" + t.getMessage())
-                                .setPositiveButton("OK", null)
-                                .show();
-                    });
                 }
-            }, aiExecutor);
 
-        } catch (Throwable t) {
-            t.printStackTrace();
-            Log.e(TAG, "Gemini init error", t);
-            loadingDialog.dismiss();
-            new AlertDialog.Builder(FlashcardDeckActivity.this)
-                    .setTitle("AI Error Details")
-                    .setMessage(t.getClass().getSimpleName() + "\n\n" + t.getMessage())
-                    .setPositiveButton("OK", null)
-                    .show();
-        }
+            } catch (Throwable t) {
+                t.printStackTrace();
+                Log.e(TAG, "Gemini REST error", t);
+                mainHandler.post(() -> {
+                    loadingDialog.dismiss();
+                    new AlertDialog.Builder(FlashcardDeckActivity.this)
+                            .setTitle("AI Error Details")
+                            .setMessage(t.getClass().getSimpleName() + "\n\n" + t.getMessage())
+                            .setPositiveButton("OK", null)
+                            .show();
+                });
+            }
+        });
     }
 
     /**
