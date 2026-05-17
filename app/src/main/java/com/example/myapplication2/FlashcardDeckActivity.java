@@ -59,7 +59,7 @@ public class FlashcardDeckActivity extends AppCompatActivity {
     };
 
     private static final String TAG            = "FlashcardDeckActivity";
-    private static final String GEMINI_MODEL   = "gemini-1.5-flash";
+    private static final String GEMINI_MODEL   = "gemini-2.0-flash";
 
     private DeckAdapter             deckAdapter;
     private final Map<String, Integer> subjectMap = new LinkedHashMap<>();
