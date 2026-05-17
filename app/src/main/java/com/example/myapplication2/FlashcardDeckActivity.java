@@ -10,7 +10,9 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -335,11 +337,14 @@ public class FlashcardDeckActivity extends AppCompatActivity {
     private void showGenerateWithAiDialog() {
         View dialogView = LayoutInflater.from(this)
                 .inflate(R.layout.dialog_generate_flashcards, null);
-        EditText etSubject = dialogView.findViewById(R.id.et_ai_subject);
-        EditText etText    = dialogView.findViewById(R.id.et_ai_text);
+        EditText etSubject    = dialogView.findViewById(R.id.et_ai_subject);
+        EditText etText       = dialogView.findViewById(R.id.et_ai_text);
+        CheckBox cbSummary    = dialogView.findViewById(R.id.cb_summary);
+        CheckBox cbExercises  = dialogView.findViewById(R.id.cb_exercises);
+        CheckBox cbFlashcards = dialogView.findViewById(R.id.cb_flashcards);
 
         new AlertDialog.Builder(this)
-                .setTitle("Generate Flashcards with AI")
+                .setTitle("AI Learning Suite")
                 .setView(dialogView)
                 .setPositiveButton("Generate", (dialog, which) -> {
                     String subject = etSubject.getText().toString().trim();
@@ -353,34 +358,54 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                         Toast.makeText(this, "Please paste some study text.", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    generateFlashcardsWithAi(subject, text);
+                    boolean wantSummary    = cbSummary.isChecked();
+                    boolean wantExercises  = cbExercises.isChecked();
+                    boolean wantFlashcards = cbFlashcards.isChecked();
+                    if (!wantSummary && !wantExercises && !wantFlashcards) {
+                        Toast.makeText(this, "Please select at least one output type.",
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    generateWithAi(subject, text, wantSummary, wantExercises, wantFlashcards);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void generateFlashcardsWithAi(String subject, String studyText) {
+    private void generateWithAi(String subject, String studyText,
+                                 boolean wantSummary, boolean wantExercises, boolean wantFlashcards) {
         String apiKey = BuildConfig.GEMINI_API_KEY.trim();
         if (apiKey.isEmpty()
                 || apiKey.equals("YOUR_GEMINI_API_KEY_HERE")
                 || apiKey.startsWith("YOUR_")) {
-            Toast.makeText(this,
-                    "Please add your API key in local.properties.",
+            Toast.makeText(this, "Please add your API key in local.properties.",
                     Toast.LENGTH_LONG).show();
             return;
         }
 
         AlertDialog loadingDialog = new AlertDialog.Builder(this)
-                .setMessage("✨ Generating flashcards with AI…")
+                .setMessage("✨ Generating with AI…")
                 .setCancelable(false)
                 .create();
         loadingDialog.show();
 
-        String prompt =
-                "Create 3-5 concise flashcards from the following study text. " +
-                "Return ONLY a raw JSON array — no markdown, no code fences, no explanation. " +
-                "Exact format: [{\"question\":\"...\",\"answer\":\"...\"}]\n\n" +
-                "Study text:\n" + studyText;
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("Analyze the following study text and produce a JSON object with ONLY these keys:\n");
+        if (wantSummary) {
+            promptBuilder.append("- \"summary\": \"<concise paragraph summarizing the key points>\"\n");
+        }
+        if (wantExercises) {
+            promptBuilder.append("- \"exercises\": array of 3-5 objects, each with keys: " +
+                    "\"question\" (string), \"level\" (\"Easy\", \"Medium\", or \"Hard\"), \"answer\" (string)\n");
+        }
+        if (wantFlashcards) {
+            promptBuilder.append("- \"flashcards\": array of 3-5 objects, each with keys: " +
+                    "\"front\" (string), \"back\" (string)\n");
+        }
+        promptBuilder.append("\nReturn ONLY a raw JSON object — no markdown, no code fences, no explanation.\n\n");
+        promptBuilder.append("Study text:\n").append(studyText);
+
+        String prompt = promptBuilder.toString();
 
         aiExecutor.execute(() -> {
             try {
@@ -427,46 +452,49 @@ public class FlashcardDeckActivity extends AppCompatActivity {
                     }
 
                     JSONObject json = new JSONObject(responseBody);
-                    String text = json
+                    String rawContent = json
                             .getJSONArray("choices")
                             .getJSONObject(0)
                             .getJSONObject("message")
                             .getString("content");
 
-                    Log.d(TAG, "Groq raw text: " + text);
+                    Log.d(TAG, "Groq raw content: " + rawContent);
 
-                    List<Flashcard> cards = parseFlashcardsFromJson(text, subject);
-                    if (cards.isEmpty()) {
-                        mainHandler.post(() -> {
-                            loadingDialog.dismiss();
-                            Toast.makeText(FlashcardDeckActivity.this,
-                                    "Could not parse AI response as flashcards. Try again.",
-                                    Toast.LENGTH_LONG).show();
-                        });
-                        return;
+                    String cleaned = rawContent.trim();
+                    if (cleaned.startsWith("```")) {
+                        cleaned = cleaned.replaceAll("^```[a-zA-Z]*\\n?", "")
+                                         .replaceAll("```$", "")
+                                         .trim();
                     }
 
-                    for (Flashcard card : cards) {
-                        DatabaseReference ref = FirebaseHelper.getInstance()
-                                .getCurrentUserRef()
-                                .child("decks").child(subject).push();
-                        card.id = ref.getKey();
-                        ref.setValue(card);
+                    JSONObject result = new JSONObject(cleaned);
+
+                    int flashcardCount = 0;
+                    if (wantFlashcards && result.has("flashcards")) {
+                        List<Flashcard> cards = parseFlashcardsFromJson(
+                                result.getJSONArray("flashcards"), subject);
+                        flashcardCount = cards.size();
+                        for (Flashcard card : cards) {
+                            DatabaseReference ref = FirebaseHelper.getInstance()
+                                    .getCurrentUserRef()
+                                    .child("decks").child(subject).push();
+                            card.id = ref.getKey();
+                            ref.setValue(card);
+                        }
                     }
 
-                    int count = cards.size();
+                    final int finalCount = flashcardCount;
+                    final JSONObject finalResult = result;
                     mainHandler.post(() -> {
                         loadingDialog.dismiss();
-                        Toast.makeText(FlashcardDeckActivity.this,
-                                count + " card" + (count == 1 ? "" : "s")
-                                        + " added to \"" + subject + "\"!",
-                                Toast.LENGTH_LONG).show();
+                        showAiResultsDialog(finalResult, subject,
+                                wantSummary, wantExercises, wantFlashcards, finalCount);
                     });
                 }
 
             } catch (Throwable t) {
                 t.printStackTrace();
-                Log.e(TAG, "Gemini REST error", t);
+                Log.e(TAG, "AI generation error", t);
                 mainHandler.post(() -> {
                     loadingDialog.dismiss();
                     new AlertDialog.Builder(FlashcardDeckActivity.this)
@@ -479,33 +507,75 @@ public class FlashcardDeckActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Parses the AI-generated text into a list of Flashcard objects.
-     * Handles optional markdown code fences (```json ... ```) in the response.
-     */
-    private List<Flashcard> parseFlashcardsFromJson(String rawText, String subject) {
-        List<Flashcard> result = new ArrayList<>();
-        try {
-            // Strip markdown code fences if Gemini wrapped the JSON
-            String cleaned = rawText.trim();
-            if (cleaned.startsWith("```")) {
-                cleaned = cleaned.replaceAll("^```[a-zA-Z]*\\n?", "")
-                                 .replaceAll("```$", "")
-                                 .trim();
-            }
+    private void showAiResultsDialog(JSONObject result, String subject,
+                                      boolean wantSummary, boolean wantExercises,
+                                      boolean wantFlashcards, int flashcardCount) {
+        StringBuilder sb = new StringBuilder();
 
-            JSONArray arr = new JSONArray(cleaned);
-            for (int i = 0; i < arr.length(); i++) {
-                JSONObject obj      = arr.getJSONObject(i);
-                String     question = obj.optString("question", "").trim();
-                String     answer   = obj.optString("answer",   "").trim();
-                if (!question.isEmpty() && !answer.isEmpty()) {
-                    result.add(new Flashcard(null, question, answer, subject, currentUid));
+        if (wantSummary && result.has("summary")) {
+            sb.append("SUMMARY\n")
+              .append("─────────────────────\n")
+              .append(result.optString("summary", "")).append("\n\n");
+        }
+
+        if (wantExercises && result.has("exercises")) {
+            sb.append("PRACTICE EXERCISES\n")
+              .append("─────────────────────\n");
+            JSONArray exercises = result.optJSONArray("exercises");
+            if (exercises != null) {
+                for (int i = 0; i < exercises.length(); i++) {
+                    JSONObject ex = exercises.optJSONObject(i);
+                    if (ex != null) {
+                        sb.append(i + 1).append(". [")
+                          .append(ex.optString("level", "?")).append("] ")
+                          .append(ex.optString("question", "")).append("\n")
+                          .append("   → ").append(ex.optString("answer", "")).append("\n\n");
+                    }
                 }
             }
-        } catch (Exception ignored) {
-            // Return whatever was parsed; caller handles empty list
         }
+
+        if (wantFlashcards) {
+            sb.append("FLASHCARDS\n")
+              .append("─────────────────────\n");
+            if (flashcardCount > 0) {
+                sb.append(flashcardCount).append(" card")
+                  .append(flashcardCount == 1 ? "" : "s")
+                  .append(" added to \"").append(subject).append("\" deck.");
+            } else {
+                sb.append("No flashcards could be parsed from the AI response.");
+            }
+        }
+
+        ScrollView scrollView = new ScrollView(this);
+        TextView tvContent = new TextView(this);
+        tvContent.setText(sb.toString());
+        tvContent.setPadding(48, 24, 48, 24);
+        tvContent.setTextSize(13f);
+        tvContent.setLineSpacing(4f, 1.2f);
+        scrollView.addView(tvContent);
+
+        new AlertDialog.Builder(this)
+                .setTitle("✨ AI Learning Suite Results")
+                .setView(scrollView)
+                .setPositiveButton("Done", null)
+                .show();
+    }
+
+    private List<Flashcard> parseFlashcardsFromJson(JSONArray arr, String subject) {
+        List<Flashcard> result = new ArrayList<>();
+        try {
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj   = arr.getJSONObject(i);
+                String     front = obj.optString("front",    "").trim();
+                String     back  = obj.optString("back",     "").trim();
+                if (front.isEmpty()) front = obj.optString("question", "").trim();
+                if (back.isEmpty())  back  = obj.optString("answer",   "").trim();
+                if (!front.isEmpty() && !back.isEmpty()) {
+                    result.add(new Flashcard(null, front, back, subject, currentUid));
+                }
+            }
+        } catch (Exception ignored) {}
         return result;
     }
 

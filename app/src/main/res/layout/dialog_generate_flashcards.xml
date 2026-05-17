@@ -52,11 +52,46 @@
         android:textSize="14sp"
         android:layout_marginBottom="10dp" />
 
+    <!-- Output options label -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="What do you want AI to generate?"
+        android:textSize="12sp"
+        android:textColor="#555555"
+        android:textStyle="bold"
+        android:layout_marginBottom="6dp" />
+
+    <CheckBox
+        android:id="@+id/cb_summary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Summary"
+        android:textSize="14sp"
+        android:checked="false" />
+
+    <CheckBox
+        android:id="@+id/cb_exercises"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Practice Exercises by Level"
+        android:textSize="14sp"
+        android:checked="false" />
+
+    <CheckBox
+        android:id="@+id/cb_flashcards"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Flashcards"
+        android:textSize="14sp"
+        android:checked="true"
+        android:layout_marginBottom="10dp" />
+
     <!-- Info hint -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="✨ Gemini AI will create 3–5 flashcards automatically."
+        android:text="✨ Groq AI will generate your selected outputs."
         android:textSize="11sp"
         android:textColor="#7B1FA2"
         android:layout_marginBottom="4dp" />
