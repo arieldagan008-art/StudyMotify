@@ -6,12 +6,11 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
+
+import com.google.android.material.button.MaterialButtonToggleGroup;
 import android.widget.EditText;
 import android.widget.ProgressBar;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -91,19 +90,13 @@ public class AiQuizActivity extends AppCompatActivity {
             } catch (Exception ignored) {}
         }
 
-        Spinner spinner = findViewById(R.id.spinner_level);
-        String[] levels = {"All Levels", "Easy", "Medium", "Hard"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_item, levels);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-                applyFilter(parent.getItemAtPosition(pos).toString());
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
+        MaterialButtonToggleGroup toggleGroup = findViewById(R.id.toggle_difficulty);
+        toggleGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (!isChecked) return;
+            if      (checkedId == R.id.btn_filter_all)    applyFilter("All Levels");
+            else if (checkedId == R.id.btn_filter_easy)   applyFilter("Easy");
+            else if (checkedId == R.id.btn_filter_medium) applyFilter("Medium");
+            else if (checkedId == R.id.btn_filter_hard)   applyFilter("Hard");
         });
 
         btnReveal.setOnClickListener(v -> {
