@@ -8,7 +8,7 @@
         android:id="@+id/homeToolbar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:title="Home"
+        android:title="@string/app_name"
         android:background="#0C84FF"
         android:titleTextColor="@android:color/white"
         app:layout_constraintTop_toTopOf="parent"
